@@ -5,12 +5,62 @@
     box-sizing: border-box;
 }
 
+:root {
+    /* Light theme colors */
+    --bg-primary: #ffffff;
+    --bg-secondary: #f8f9fa;
+    --bg-tertiary: #e9ecef;
+    --text-primary: #333333;
+    --text-secondary: #666666;
+    --text-muted: #999999;
+    --border-color: #e9ecef;
+    --border-hover: #007bff;
+    --accent-primary: #007bff;
+    --accent-hover: #0056b3;
+    --gradient-start: #667eea;
+    --gradient-end: #764ba2;
+    --shadow-color: rgba(0, 0, 0, 0.1);
+    --success-color: #28a745;
+    --danger-color: #dc3545;
+    --warning-color: #856404;
+    --warning-bg: #fff3cd;
+    --danger-bg: #fee;
+    --info-bg: #d1ecf1;
+    --info-color: #0c5460;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        /* Dark theme colors */
+        --bg-primary: #1a1a1a;
+        --bg-secondary: #2d2d2d;
+        --bg-tertiary: #404040;
+        --text-primary: #e0e0e0;
+        --text-secondary: #b0b0b0;
+        --text-muted: #808080;
+        --border-color: #404040;
+        --border-hover: #4a9eff;
+        --accent-primary: #4a9eff;
+        --accent-hover: #66b3ff;
+        --gradient-start: #4a5fc1;
+        --gradient-end: #5d4e75;
+        --shadow-color: rgba(0, 0, 0, 0.3);
+        --success-color: #4caf50;
+        --danger-color: #f44336;
+        --warning-color: #ff9800;
+        --warning-bg: #332b00;
+        --danger-bg: #330a0a;
+        --info-bg: #0a2429;
+        --info-color: #4dd0e1;
+    }
+}
+
 body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
     font-size: 14px;
     line-height: 1.5;
-    color: #333;
-    background: #f8f9fa;
+    color: var(--text-primary);
+    background: var(--bg-secondary);
     width: 400px;
     min-height: 500px;
     max-height: 600px;
@@ -18,7 +68,7 @@ body {
 
 /* Container */
 .container {
-    background: white;
+    background: var(--bg-primary);
     border-radius: 8px;
     overflow: hidden;
     height: 100vh;
@@ -28,7 +78,7 @@ body {
 
 /* Header */
 .header {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, var(--gradient-start) 0%, var(--gradient-end) 100%);
     color: white;
     padding: 16px;
     text-align: center;
@@ -51,7 +101,7 @@ body {
 /* Controls */
 .controls {
     padding: 16px;
-    border-bottom: 1px solid #e9ecef;
+    border-bottom: 1px solid var(--border-color);
 }
 
 .btn {
@@ -71,12 +121,12 @@ body {
 }
 
 .btn-primary {
-    background: #007bff;
+    background: var(--accent-primary);
     color: white;
 }
 
 .btn-primary:hover {
-    background: #0056b3;
+    background: var(--accent-hover);
     transform: translateY(-1px);
 }
 
@@ -92,36 +142,39 @@ body {
 .filter-select {
     flex: 1;
     padding: 8px 12px;
-    border: 2px solid #e9ecef;
+    border: 2px solid var(--border-color);
     border-radius: 6px;
-    background: white;
+    background: var(--bg-primary);
+    color: var(--text-primary);
     font-size: 12px;
     cursor: pointer;
 }
 
 .filter-select:focus {
     outline: none;
-    border-color: #007bff;
+    border-color: var(--border-hover);
 }
 
 /* Search */
 .search-box {
     padding: 0 16px 16px;
-    border-bottom: 1px solid #e9ecef;
+    border-bottom: 1px solid var(--border-color);
 }
 
 .search-input {
     width: 100%;
     padding: 10px 12px;
-    border: 2px solid #e9ecef;
+    border: 2px solid var(--border-color);
     border-radius: 6px;
     font-size: 14px;
+    background: var(--bg-primary);
+    color: var(--text-primary);
     transition: border-color 0.2s ease;
 }
 
 .search-input:focus {
     outline: none;
-    border-color: #007bff;
+    border-color: var(--border-hover);
 }
 
 /* Links list */
@@ -132,8 +185,8 @@ body {
 }
 
 .link-item {
-    background: white;
-    border: 1px solid #e9ecef;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
     border-radius: 8px;
     padding: 12px;
     margin-bottom: 8px;
@@ -142,7 +195,7 @@ body {
 }
 
 .link-item:hover {
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 2px 8px var(--shadow-color);
     transform: translateY(-1px);
 }
 
@@ -155,7 +208,7 @@ body {
 
 .link-title {
     font-weight: 600;
-    color: #333;
+    color: var(--text-primary);
     text-decoration: none;
     flex: 1;
     margin-right: 8px;
@@ -167,7 +220,7 @@ body {
 }
 
 .link-title:hover {
-    color: #007bff;
+    color: var(--accent-primary);
 }
 
 .link-actions {
@@ -188,12 +241,12 @@ body {
 
 .action-btn:hover {
     opacity: 1;
-    background: #f8f9fa;
+    background: var(--bg-tertiary);
 }
 
 .delete-btn:hover {
-    background: #fee;
-    color: #dc3545;
+    background: var(--danger-bg);
+    color: var(--danger-color);
 }
 
 .link-meta {
@@ -201,7 +254,7 @@ body {
     justify-content: space-between;
     align-items: center;
     font-size: 12px;
-    color: #666;
+    color: var(--text-secondary);
     margin-bottom: 8px;
 }
 
@@ -214,22 +267,22 @@ body {
 }
 
 .priority-high {
-    background: #fee;
-    color: #dc3545;
+    background: var(--danger-bg);
+    color: var(--danger-color);
 }
 
 .priority-medium {
-    background: #fff3cd;
-    color: #856404;
+    background: var(--warning-bg);
+    color: var(--warning-color);
 }
 
 .priority-low {
-    background: #d1ecf1;
-    color: #0c5460;
+    background: var(--info-bg);
+    color: var(--info-color);
 }
 
 .time-estimate {
-    color: #666;
+    color: var(--text-secondary);
 }
 
 .link-tags {
@@ -240,17 +293,17 @@ body {
 }
 
 .tag {
-    background: #f8f9fa;
-    color: #666;
+    background: var(--bg-tertiary);
+    color: var(--text-secondary);
     padding: 2px 6px;
     border-radius: 10px;
     font-size: 11px;
-    border: 1px solid #e9ecef;
+    border: 1px solid var(--border-color);
 }
 
 .link-url {
     font-size: 11px;
-    color: #999;
+    color: var(--text-muted);
     margin-top: 4px;
     word-break: break-all;
     display: -webkit-box;
@@ -295,14 +348,14 @@ body {
 }
 
 .links-list::-webkit-scrollbar-track {
-    background: #f8f9fa;
+    background: var(--bg-secondary);
 }
 
 .links-list::-webkit-scrollbar-thumb {
-    background: #dee2e6;
+    background: var(--border-color);
     border-radius: 3px;
 }
 
 .links-list::-webkit-scrollbar-thumb:hover {
-    background: #adb5bd;
+    background: var(--text-muted);
 } 

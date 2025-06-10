@@ -1,9 +1,51 @@
 /* Options page styles */
+:root {
+    /* Light theme colors */
+    --bg-primary: #ffffff;
+    --bg-secondary: #f8f9fa;
+    --bg-tertiary: #e9ecef;
+    --text-primary: #333333;
+    --text-secondary: #666666;
+    --text-muted: #999999;
+    --border-color: #e9ecef;
+    --border-hover: #667eea;
+    --accent-primary: #667eea;
+    --accent-hover: #5a6fd8;
+    --gradient-start: #667eea;
+    --gradient-end: #764ba2;
+    --shadow-color: rgba(0, 0, 0, 0.1);
+    --success-color: #28a745;
+    --danger-color: #dc3545;
+    --warning-color: #856404;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        /* Dark theme colors */
+        --bg-primary: #1a1a1a;
+        --bg-secondary: #2d2d2d;
+        --bg-tertiary: #404040;
+        --text-primary: #e0e0e0;
+        --text-secondary: #b0b0b0;
+        --text-muted: #808080;
+        --border-color: #404040;
+        --border-hover: #4a9eff;
+        --accent-primary: #4a9eff;
+        --accent-hover: #66b3ff;
+        --gradient-start: #4a5fc1;
+        --gradient-end: #5d4e75;
+        --shadow-color: rgba(0, 0, 0, 0.3);
+        --success-color: #4caf50;
+        --danger-color: #f44336;
+        --warning-color: #ff9800;
+    }
+}
+
 body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
     line-height: 1.6;
-    color: #333;
-    background: #f8f9fa;
+    color: var(--text-primary);
+    background: var(--bg-secondary);
     margin: 0;
     padding: 20px;
 }
@@ -11,14 +53,14 @@ body {
 .container {
     max-width: 800px;
     margin: 0 auto;
-    background: white;
+    background: var(--bg-primary);
     border-radius: 12px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 20px var(--shadow-color);
     overflow: hidden;
 }
 
 header {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, var(--gradient-start) 0%, var(--gradient-end) 100%);
     color: white;
     padding: 32px;
     text-align: center;
@@ -43,7 +85,7 @@ main {
 .section {
     margin-bottom: 40px;
     padding-bottom: 32px;
-    border-bottom: 1px solid #e9ecef;
+    border-bottom: 1px solid var(--border-color);
 }
 
 .section:last-child {
@@ -54,7 +96,7 @@ main {
 .section h2 {
     margin: 0 0 20px 0;
     font-size: 20px;
-    color: #495057;
+    color: var(--text-primary);
     font-weight: 600;
 }
 
@@ -66,7 +108,7 @@ main {
     display: block;
     margin-bottom: 8px;
     font-weight: 500;
-    color: #495057;
+    color: var(--text-primary);
 }
 
 .setting-group input[type="checkbox"] {
@@ -76,17 +118,18 @@ main {
 .setting-group select,
 .setting-group input[type="number"] {
     padding: 10px 12px;
-    border: 2px solid #e9ecef;
+    border: 2px solid var(--border-color);
     border-radius: 6px;
     font-size: 14px;
-    background: white;
+    background: var(--bg-primary);
+    color: var(--text-primary);
     transition: border-color 0.2s ease;
 }
 
 .setting-group select:focus,
 .setting-group input[type="number"]:focus {
     outline: none;
-    border-color: #667eea;
+    border-color: var(--border-hover);
 }
 
 .data-stats {
@@ -97,8 +140,8 @@ main {
 }
 
 .stat {
-    background: #f8f9fa;
-    border: 1px solid #e9ecef;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
     border-radius: 8px;
     padding: 20px;
     text-align: center;
@@ -107,12 +150,12 @@ main {
 .stat strong {
     display: block;
     font-size: 24px;
-    color: #667eea;
+    color: var(--accent-primary);
     margin-bottom: 4px;
 }
 
 .stat span {
-    color: #6c757d;
+    color: var(--text-secondary);
     font-size: 14px;
 }
 
@@ -137,32 +180,33 @@ main {
 }
 
 .btn-primary {
-    background: #667eea;
+    background: var(--accent-primary);
     color: white;
 }
 
 .btn-primary:hover {
-    background: #5a6fd8;
+    background: var(--accent-hover);
     transform: translateY(-1px);
 }
 
 .btn-secondary {
-    background: #6c757d;
+    background: var(--text-secondary);
     color: white;
 }
 
 .btn-secondary:hover {
-    background: #5a6268;
+    background: var(--text-muted);
     transform: translateY(-1px);
 }
 
 .btn-danger {
-    background: #dc3545;
+    background: var(--danger-color);
     color: white;
 }
 
 .btn-danger:hover {
-    background: #c82333;
+    background: var(--danger-color);
+    opacity: 0.8;
     transform: translateY(-1px);
 }
 
@@ -173,19 +217,19 @@ main {
 
 .shortcut {
     padding: 16px;
-    background: #f8f9fa;
-    border: 1px solid #e9ecef;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
     border-radius: 8px;
 }
 
 .shortcut strong {
     display: block;
-    color: #495057;
+    color: var(--text-primary);
     margin-bottom: 4px;
 }
 
 .shortcut span {
-    color: #6c757d;
+    color: var(--text-secondary);
     font-size: 14px;
 }
 
@@ -194,7 +238,7 @@ main {
 }
 
 .link {
-    color: #667eea;
+    color: var(--accent-primary);
     text-decoration: none;
     margin-right: 20px;
     font-weight: 500;
@@ -205,9 +249,9 @@ main {
 }
 
 footer {
-    background: #f8f9fa;
+    background: var(--bg-tertiary);
     padding: 24px 32px;
-    border-top: 1px solid #e9ecef;
+    border-top: 1px solid var(--border-color);
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -215,7 +259,7 @@ footer {
 
 .save-status {
     font-size: 14px;
-    color: #28a745;
+    color: var(--success-color);
     font-weight: 500;
 }
 
