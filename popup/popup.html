@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Read Later</title>
+    <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1 class="title">Read Later</h1>
+            <div class="stats">
+                <span id="linkCount">0 items</span>
+                <span id="totalTime">0 min total</span>
+            </div>
+        </header>
+
+        <div class="controls">
+            <button id="addCurrentPage" class="btn btn-primary">
+                <span class="icon">+</span>
+                Add Current Page
+            </button>
+            
+            <div class="filters">
+                <select id="priorityFilter" class="filter-select">
+                    <option value="">All Priorities</option>
+                    <option value="high">High Priority</option>
+                    <option value="medium">Medium Priority</option>
+                    <option value="low">Low Priority</option>
+                </select>
+                
+                <select id="sortBy" class="filter-select">
+                    <option value="dateAdded">Date Added</option>
+                    <option value="priority">Priority</option>
+                    <option value="timeToRead">Read Time</option>
+                    <option value="title">Title</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="search-box">
+            <input type="text" id="searchInput" placeholder="Search your links..." class="search-input">
+        </div>
+
+        <div id="linksList" class="links-list">
+            <div class="loading">Loading your links...</div>
+        </div>
+
+        <div class="empty-state" id="emptyState" style="display: none;">
+            <div class="empty-icon">📚</div>
+            <h3>No links saved yet</h3>
+            <p>Right-click on any page or link and select "Save to Read Later"</p>
+        </div>
+    </div>
+
+    <script src="popup.js"></script>
+</body>
+</html> 

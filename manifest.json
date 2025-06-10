@@ -1,0 +1,43 @@
+{
+  "manifest_version": 3,
+  "name": "Read Later",
+  "version": "1.0.0",
+  "description": "Save links to read later with priority and time estimates",
+  
+  "permissions": [
+    "storage",
+    "activeTab",
+    "contextMenus"
+  ],
+  
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_title": "Read Later",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "64": "icons/icon64.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  
+  "background": {
+    "service_worker": "background/background.js"
+  },
+  
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content/content.js"]
+    }
+  ],
+  
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "64": "icons/icon64.png",
+    "128": "icons/icon128.png"
+  },
+  
+  "options_page": "options/options.html"
+} 
