@@ -7,6 +7,9 @@ chrome.runtime.onInstalled.addListener(() => {
     title: "Save to Read Later",
     contexts: ["page", "link"]
   });
+  
+  // Auto-cleanup completed links on install/update
+  cleanupCompletedLinks();
 });
 
 // Handle context menu clicks
@@ -43,6 +46,33 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       });
       return true;
       
+    case "getCompletedLinks":
+      getCompletedLinks().then(links => {
+        sendResponse({ success: true, data: links });
+      }).catch(error => {
+        sendResponse({ success: false, error: error.message });
+      });
+      return true;
+      
+    case "completeLink":
+      console.log('Background: Received completeLink request for ID:', request.id);
+      completeLink(request.id).then(() => {
+        console.log('Background: completeLink successful');
+        sendResponse({ success: true });
+      }).catch(error => {
+        console.error('Background: completeLink error:', error);
+        sendResponse({ success: false, error: error.message });
+      });
+      return true;
+      
+    case "uncompleteLink":
+      uncompleteLink(request.id).then(() => {
+        sendResponse({ success: true });
+      }).catch(error => {
+        sendResponse({ success: false, error: error.message });
+      });
+      return true;
+      
     case "deleteLink":
       deleteLink(request.id).then(() => {
         sendResponse({ success: true });
@@ -54,6 +84,14 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     case "updateLink":
       updateLink(request.id, request.data).then(() => {
         sendResponse({ success: true });
+      }).catch(error => {
+        sendResponse({ success: false, error: error.message });
+      });
+      return true;
+      
+    case "cleanupCompleted":
+      cleanupCompletedLinks().then(count => {
+        sendResponse({ success: true, deletedCount: count });
       }).catch(error => {
         sendResponse({ success: false, error: error.message });
       });
@@ -87,10 +125,18 @@ async function getLinks() {
 }
 
 async function deleteLink(id) {
-  const result = await chrome.storage.local.get(['readLaterLinks']);
+  const result = await chrome.storage.local.get(['readLaterLinks', 'completedLinks']);
   const links = result.readLaterLinks || [];
+  const completedLinks = result.completedLinks || [];
+  
+  // Remove from both active and completed lists
   const filteredLinks = links.filter(link => link.id !== id);
-  await chrome.storage.local.set({ readLaterLinks: filteredLinks });
+  const filteredCompletedLinks = completedLinks.filter(link => link.id !== id);
+  
+  await chrome.storage.local.set({ 
+    readLaterLinks: filteredLinks,
+    completedLinks: filteredCompletedLinks
+  });
 }
 
 async function updateLink(id, updateData) {
@@ -102,4 +148,104 @@ async function updateLink(id, updateData) {
     links[linkIndex] = { ...links[linkIndex], ...updateData };
     await chrome.storage.local.set({ readLaterLinks: links });
   }
-} 
+}
+
+async function getCompletedLinks() {
+  const result = await chrome.storage.local.get(['completedLinks']);
+  return result.completedLinks || [];
+}
+
+async function completeLink(id) {
+  try {
+    console.log('Background: completeLink function called with ID:', id);
+    const result = await chrome.storage.local.get(['readLaterLinks', 'completedLinks']);
+    const links = result.readLaterLinks || [];
+    const completedLinks = result.completedLinks || [];
+    
+    console.log('Background: Found', links.length, 'active links and', completedLinks.length, 'completed links');
+    
+    const linkIndex = links.findIndex(link => link.id === id);
+    console.log('Background: Link index found:', linkIndex);
+    
+    if (linkIndex !== -1) {
+      const completedLink = {
+        ...links[linkIndex],
+        completedDate: new Date().toISOString()
+      };
+      
+      console.log('Background: Moving link to completed:', completedLink.title);
+      
+      // Move to completed list
+      completedLinks.unshift(completedLink);
+      // Remove from active list
+      links.splice(linkIndex, 1);
+      
+      await chrome.storage.local.set({ 
+        readLaterLinks: links,
+        completedLinks: completedLinks 
+      });
+      
+      console.log('Background: Storage updated successfully');
+    } else {
+      console.log('Background: Link not found with ID:', id);
+    }
+  } catch (error) {
+    console.error('Background: Error in completeLink:', error);
+    throw error;
+  }
+}
+
+async function uncompleteLink(id) {
+  const result = await chrome.storage.local.get(['readLaterLinks', 'completedLinks']);
+  const links = result.readLaterLinks || [];
+  const completedLinks = result.completedLinks || [];
+  
+  const linkIndex = completedLinks.findIndex(link => link.id === id);
+  if (linkIndex !== -1) {
+    const restoredLink = { ...completedLinks[linkIndex] };
+    delete restoredLink.completedDate;
+    
+    // Move back to active list
+    links.unshift(restoredLink);
+    // Remove from completed list
+    completedLinks.splice(linkIndex, 1);
+    
+    await chrome.storage.local.set({ 
+      readLaterLinks: links,
+      completedLinks: completedLinks 
+    });
+  }
+}
+
+async function cleanupCompletedLinks() {
+  const settings = await chrome.storage.sync.get(['readLaterSettings']);
+  const cleanupDays = settings.readLaterSettings?.cleanupDays || 90;
+  const autoCleanup = settings.readLaterSettings?.autoCleanup !== false;
+  
+  if (!autoCleanup) return 0;
+  
+  const result = await chrome.storage.local.get(['completedLinks']);
+  const completedLinks = result.completedLinks || [];
+  const cutoffDate = new Date();
+  cutoffDate.setDate(cutoffDate.getDate() - cleanupDays);
+  
+  const filteredLinks = completedLinks.filter(link => {
+    const completedDate = new Date(link.completedDate);
+    return completedDate > cutoffDate;
+  });
+  
+  const deletedCount = completedLinks.length - filteredLinks.length;
+  
+  if (deletedCount > 0) {
+    await chrome.storage.local.set({ completedLinks: filteredLinks });
+  }
+  
+  return deletedCount;
+}
+
+// Auto-cleanup on startup
+chrome.runtime.onStartup.addListener(() => {
+  cleanupCompletedLinks();
+});
+
+ 

@@ -42,14 +42,22 @@ function loadSettings() {
 
 // Load statistics
 function loadStats() {
-  chrome.runtime.sendMessage({ action: 'getLinks' }, (response) => {
-    if (response.success) {
-      const links = response.data;
-      const total = links.reduce((sum, link) => sum + link.timeToRead, 0);
-      
-      totalLinks.textContent = links.length;
-      totalTime.textContent = total;
-    }
+  Promise.all([
+    new Promise(resolve => {
+      chrome.runtime.sendMessage({ action: 'getLinks' }, resolve);
+    }),
+    new Promise(resolve => {
+      chrome.runtime.sendMessage({ action: 'getCompletedLinks' }, resolve);
+    })
+  ]).then(([activeResponse, completedResponse]) => {
+    const activeLinks = activeResponse.success ? activeResponse.data : [];
+    const completedLinks = completedResponse.success ? completedResponse.data : [];
+    
+    const totalLinksCount = activeLinks.length + completedLinks.length;
+    const totalTimeValue = [...activeLinks, ...completedLinks].reduce((sum, link) => sum + link.timeToRead, 0);
+    
+    totalLinks.textContent = `${totalLinksCount} (${activeLinks.length} active, ${completedLinks.length} completed)`;
+    totalTime.textContent = totalTimeValue;
   });
 }
 
@@ -68,29 +76,38 @@ function saveSettingsToStorage() {
 
 // Export data to JSON file
 function exportDataToFile() {
-  chrome.runtime.sendMessage({ action: 'getLinks' }, (response) => {
-    if (response.success) {
-      const data = {
-        links: response.data,
-        exportDate: new Date().toISOString(),
-        version: '1.0.0'
-      };
-      
-      const blob = new Blob([JSON.stringify(data, null, 2)], {
-        type: 'application/json'
-      });
-      
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `read-later-backup-${new Date().toISOString().split('T')[0]}.json`;
-      a.click();
-      
-      URL.revokeObjectURL(url);
-      showSaveStatus('Data exported successfully!');
-    } else {
-      showSaveStatus('Failed to export data', true);
-    }
+  Promise.all([
+    new Promise(resolve => {
+      chrome.runtime.sendMessage({ action: 'getLinks' }, resolve);
+    }),
+    new Promise(resolve => {
+      chrome.runtime.sendMessage({ action: 'getCompletedLinks' }, resolve);
+    })
+  ]).then(([activeResponse, completedResponse]) => {
+    const activeLinks = activeResponse.success ? activeResponse.data : [];
+    const completedLinks = completedResponse.success ? completedResponse.data : [];
+    
+    const data = {
+      activeLinks: activeLinks,
+      completedLinks: completedLinks,
+      exportDate: new Date().toISOString(),
+      version: '2.0.0'
+    };
+    
+    const blob = new Blob([JSON.stringify(data, null, 2)], {
+      type: 'application/json'
+    });
+    
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `read-later-backup-${new Date().toISOString().split('T')[0]}.json`;
+    a.click();
+    
+    URL.revokeObjectURL(url);
+    showSaveStatus(`Data exported successfully! (${activeLinks.length} active, ${completedLinks.length} completed)`);
+  }).catch(error => {
+    showSaveStatus('Failed to export data', true);
   });
 }
 
@@ -103,27 +120,43 @@ function importDataFromFile(event) {
   reader.onload = (e) => {
     try {
       const data = JSON.parse(e.target.result);
+      let activeLinks = [];
+      let completedLinks = [];
       
-      if (!data.links || !Array.isArray(data.links)) {
-        throw new Error('Invalid file format');
+      // Handle different file formats
+      if (data.version === '2.0.0') {
+        // New format with separate active and completed lists
+        activeLinks = data.activeLinks || [];
+        completedLinks = data.completedLinks || [];
+      } else {
+        // Old format (v1.0.0) - treat all as active links
+        activeLinks = data.links || [];
+        completedLinks = [];
       }
       
       // Validate and clean imported links
-      const validLinks = data.links.filter(link => 
-        link.url && link.title && link.priority && typeof link.timeToRead === 'number'
-      ).map(link => ({
+      const validateLink = (link) => 
+        link.url && link.title && link.priority && typeof link.timeToRead === 'number';
+      
+      const cleanLink = (link) => ({
         ...link,
         id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
         dateAdded: link.dateAdded || new Date().toISOString()
-      }));
+      });
       
-      if (validLinks.length === 0) {
+      const validActiveLinks = activeLinks.filter(validateLink).map(cleanLink);
+      const validCompletedLinks = completedLinks.filter(validateLink).map(cleanLink);
+      
+      const totalValidLinks = validActiveLinks.length + validCompletedLinks.length;
+      
+      if (totalValidLinks === 0) {
         throw new Error('No valid links found in file');
       }
       
       // Confirm import
-      if (confirm(`Import ${validLinks.length} links? This will not replace your existing data.`)) {
-        importLinks(validLinks);
+      const message = `Import ${totalValidLinks} links (${validActiveLinks.length} active, ${validCompletedLinks.length} completed)? This will not replace your existing data.`;
+      if (confirm(message)) {
+        importLinks(validActiveLinks, validCompletedLinks);
       }
       
     } catch (error) {
@@ -138,31 +171,43 @@ function importDataFromFile(event) {
 }
 
 // Import links to storage
-function importLinks(newLinks) {
-  chrome.runtime.sendMessage({ action: 'getLinks' }, (response) => {
-    if (response.success) {
-      const existingLinks = response.data;
-      const allLinks = [...existingLinks, ...newLinks];
-      
-      chrome.storage.local.set({ readLaterLinks: allLinks }, () => {
-        showSaveStatus(`Successfully imported ${newLinks.length} links!`);
-        loadStats();
-      });
-    } else {
-      showSaveStatus('Failed to import links', true);
-    }
+function importLinks(newActiveLinks, newCompletedLinks) {
+  Promise.all([
+    new Promise(resolve => {
+      chrome.runtime.sendMessage({ action: 'getLinks' }, resolve);
+    }),
+    new Promise(resolve => {
+      chrome.runtime.sendMessage({ action: 'getCompletedLinks' }, resolve);
+    })
+  ]).then(([activeResponse, completedResponse]) => {
+    const existingActiveLinks = activeResponse.success ? activeResponse.data : [];
+    const existingCompletedLinks = completedResponse.success ? completedResponse.data : [];
+    
+    const allActiveLinks = [...existingActiveLinks, ...newActiveLinks];
+    const allCompletedLinks = [...existingCompletedLinks, ...newCompletedLinks];
+    
+    chrome.storage.local.set({ 
+      readLaterLinks: allActiveLinks,
+      completedLinks: allCompletedLinks
+    }, () => {
+      const totalImported = newActiveLinks.length + newCompletedLinks.length;
+      showSaveStatus(`Successfully imported ${totalImported} links (${newActiveLinks.length} active, ${newCompletedLinks.length} completed)!`);
+      loadStats();
+    });
+  }).catch(error => {
+    showSaveStatus('Failed to import links', true);
   });
 }
 
 // Clear all data with confirmation
 function clearAllDataConfirm() {
   const confirmation = prompt(
-    'This will delete ALL your saved links permanently.\n\n' +
+    'This will delete ALL your saved links (both active and completed) permanently.\n\n' +
     'Type "DELETE" to confirm:'
   );
   
   if (confirmation === 'DELETE') {
-    chrome.storage.local.remove(['readLaterLinks'], () => {
+    chrome.storage.local.remove(['readLaterLinks', 'completedLinks'], () => {
       showSaveStatus('All data cleared successfully!');
       loadStats();
     });

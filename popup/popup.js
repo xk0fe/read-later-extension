@@ -1,7 +1,9 @@
 // Popup script for Read Later extension
 
 let allLinks = [];
+let allCompletedLinks = [];
 let filteredLinks = [];
+let currentView = 'active'; // 'active' or 'completed'
 
 // DOM elements
 const linksList = document.getElementById('linksList');
@@ -12,6 +14,8 @@ const addCurrentPageBtn = document.getElementById('addCurrentPage');
 const priorityFilter = document.getElementById('priorityFilter');
 const sortBy = document.getElementById('sortBy');
 const searchInput = document.getElementById('searchInput');
+const activeTab = document.getElementById('activeTab');
+const completedTab = document.getElementById('completedTab');
 
 // Initialize popup
 document.addEventListener('DOMContentLoaded', () => {
@@ -25,18 +29,64 @@ function setupEventListeners() {
   priorityFilter.addEventListener('change', applyFilters);
   sortBy.addEventListener('change', applyFilters);
   searchInput.addEventListener('input', applyFilters);
+  activeTab.addEventListener('click', () => switchView('active'));
+  completedTab.addEventListener('click', () => switchView('completed'));
 }
 
 // Load all links from storage
 function loadLinks() {
   chrome.runtime.sendMessage({ action: 'getLinks' }, (response) => {
-    if (response.success) {
-      allLinks = response.data;
-      applyFilters();
-    } else {
-      showError('Failed to load links');
+    if (chrome.runtime.lastError) {
+      console.error('Runtime error:', chrome.runtime.lastError);
+      allLinks = [];
+      loadCompletedLinks();
+      return;
     }
+    
+    if (response && response.success) {
+      allLinks = response.data;
+    } else {
+      console.error('Failed to load links:', response);
+      allLinks = [];
+    }
+    loadCompletedLinks();
   });
+}
+
+// Load completed links from storage
+function loadCompletedLinks() {
+  chrome.runtime.sendMessage({ action: 'getCompletedLinks' }, (response) => {
+    if (chrome.runtime.lastError) {
+      console.error('Runtime error:', chrome.runtime.lastError);
+      allCompletedLinks = [];
+      applyFilters();
+      return;
+    }
+    
+    if (response && response.success) {
+      allCompletedLinks = response.data;
+    } else {
+      console.error('Failed to load completed links:', response);
+      allCompletedLinks = [];
+    }
+    applyFilters();
+  });
+}
+
+// Switch between active and completed views
+function switchView(view) {
+  currentView = view;
+  
+  // Update tab states
+  if (view === 'active') {
+    activeTab.classList.add('active');
+    completedTab.classList.remove('active');
+  } else {
+    activeTab.classList.remove('active');
+    completedTab.classList.add('active');
+  }
+  
+  applyFilters();
 }
 
 // Apply filters and search
@@ -45,10 +95,13 @@ function applyFilters() {
   const searchValue = searchInput.value.toLowerCase().trim();
   const sortValue = sortBy.value;
 
+  // Get current data set based on view
+  const currentData = currentView === 'active' ? allLinks : allCompletedLinks;
+
   // Filter by priority
   filteredLinks = priorityValue 
-    ? allLinks.filter(link => link.priority === priorityValue)
-    : [...allLinks];
+    ? currentData.filter(link => link.priority === priorityValue)
+    : [...currentData];
 
   // Filter by search term
   if (searchValue) {
@@ -85,9 +138,23 @@ function applyFilters() {
 // Render links in the popup
 function renderLinks() {
   if (filteredLinks.length === 0) {
-    if (allLinks.length === 0) {
+    const currentData = currentView === 'active' ? allLinks : allCompletedLinks;
+    if (currentData.length === 0) {
       linksList.style.display = 'none';
       emptyState.style.display = 'block';
+      const emptyIcon = emptyState.querySelector('.empty-icon');
+      const emptyTitle = emptyState.querySelector('h3');
+      const emptyText = emptyState.querySelector('p');
+      
+      if (currentView === 'active') {
+        emptyIcon.textContent = '📚';
+        emptyTitle.textContent = 'No links saved yet';
+        emptyText.textContent = 'Right-click on any page or link and select "Save to Read Later"';
+      } else {
+        emptyIcon.textContent = '✅';
+        emptyTitle.textContent = 'No completed items';
+        emptyText.textContent = 'Complete some links from your active list to see them here';
+      }
     } else {
       linksList.innerHTML = '<div class="loading">No links match your filters</div>';
       emptyState.style.display = 'none';
@@ -105,6 +172,20 @@ function renderLinks() {
     btn.addEventListener('click', (e) => {
       e.preventDefault();
       deleteLink(btn.dataset.id);
+    });
+  });
+
+  document.querySelectorAll('.complete-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      completeLink(btn.dataset.id);
+    });
+  });
+
+  document.querySelectorAll('.uncomplete-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      uncompleteLink(btn.dataset.id);
     });
   });
 
@@ -128,6 +209,15 @@ function createLinkElement(link) {
           ${escapeHtml(link.title)}
         </a>
         <div class="link-actions">
+          ${currentView === 'active' ? `
+          <button class="action-btn complete-btn" data-id="${link.id}" title="Mark as Complete">
+            ✅
+          </button>
+          ` : `
+          <button class="action-btn uncomplete-btn" data-id="${link.id}" title="Mark as Incomplete">
+            ↩️
+          </button>
+          `}
           <button class="action-btn delete-btn" data-id="${link.id}" title="Delete">
             🗑️
           </button>
@@ -190,12 +280,80 @@ function deleteLink(linkId) {
     action: 'deleteLink', 
     id: linkId 
   }, (response) => {
-    if (response.success) {
+    if (chrome.runtime.lastError) {
+      console.error('Runtime error:', chrome.runtime.lastError);
+      showError('Failed to delete link');
+      return;
+    }
+    
+    if (response && response.success) {
       // Remove from local arrays
-      allLinks = allLinks.filter(link => link.id !== linkId);
+      if (currentView === 'active') {
+        allLinks = allLinks.filter(link => link.id !== linkId);
+      } else {
+        allCompletedLinks = allCompletedLinks.filter(link => link.id !== linkId);
+      }
       applyFilters();
     } else {
       showError('Failed to delete link');
+    }
+  });
+}
+
+// Complete a link
+function completeLink(linkId) {
+  chrome.runtime.sendMessage({ 
+    action: 'completeLink', 
+    id: linkId 
+  }, (response) => {
+    if (chrome.runtime.lastError) {
+      console.error('Runtime error:', chrome.runtime.lastError);
+      showError('Failed to complete link');
+      return;
+    }
+    
+    if (response && response.success) {
+      // Move link from active to completed
+      const linkIndex = allLinks.findIndex(link => link.id === linkId);
+      if (linkIndex !== -1) {
+        const completedLink = {
+          ...allLinks[linkIndex],
+          completedDate: new Date().toISOString()
+        };
+        allCompletedLinks.unshift(completedLink);
+        allLinks.splice(linkIndex, 1);
+        applyFilters();
+      }
+    } else {
+      showError('Failed to complete link');
+    }
+  });
+}
+
+// Uncomplete a link
+function uncompleteLink(linkId) {
+  chrome.runtime.sendMessage({ 
+    action: 'uncompleteLink', 
+    id: linkId 
+  }, (response) => {
+    if (chrome.runtime.lastError) {
+      console.error('Runtime error:', chrome.runtime.lastError);
+      showError('Failed to uncomplete link');
+      return;
+    }
+    
+    if (response && response.success) {
+      // Move link from completed to active
+      const linkIndex = allCompletedLinks.findIndex(link => link.id === linkId);
+      if (linkIndex !== -1) {
+        const restoredLink = { ...allCompletedLinks[linkIndex] };
+        delete restoredLink.completedDate;
+        allLinks.unshift(restoredLink);
+        allCompletedLinks.splice(linkIndex, 1);
+        applyFilters();
+      }
+    } else {
+      showError('Failed to uncomplete link');
     }
   });
 }

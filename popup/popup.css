@@ -148,6 +148,35 @@ body {
     font-size: 16px;
 }
 
+.view-tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 12px;
+}
+
+.tab-btn {
+    flex: 1;
+    padding: 8px 12px;
+    border: 2px solid var(--border-color);
+    border-radius: 6px;
+    background: var(--bg-primary);
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.tab-btn.active {
+    background: var(--accent-primary);
+    color: white;
+    border-color: var(--accent-primary);
+}
+
+.tab-btn:hover:not(.active) {
+    background: var(--bg-tertiary);
+}
+
 .filters {
     display: flex;
     gap: 8px;
@@ -256,6 +285,14 @@ body {
 .action-btn:hover {
     opacity: 1;
     background: var(--bg-tertiary);
+}
+
+.complete-btn:hover {
+    background: rgba(52, 199, 89, 0.2);
+}
+
+.uncomplete-btn:hover {
+    background: rgba(255, 149, 0, 0.2);
 }
 
 .delete-btn:hover {
