@@ -1,6 +1,15 @@
-# Read Later Extension 📚
+<div align="center">
+  <img src="icons/icon128.png" alt="Read Later Extension" width="128" height="128">
+  
+  # Read Later Extension 📚
+  
+  A simple browser extension for Chrome based browsers that helps you manage your reading queue with priorities and time estimates.
+</div>
 
-A simple browser extension for Chrome based browsers that helps you manage your reading queue with priorities and time estimates.
+<div align="center">
+  <img src="preview/screenshot_0.png" alt="Read Later Extension Interface" width="400">
+  <p>😎</p>
+</div>
 
 ## Features ✨
 
@@ -124,6 +133,10 @@ If you encounter any issues or have feature requests:
 - Search and filtering
 - Data export/import
 - Modern UI design
+
+## Attributions
+
+[Publication icons created by meaicon - Flaticon](https://www.flaticon.com/free-icons/publication)
 
 ---
 

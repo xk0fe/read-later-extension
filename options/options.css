@@ -11,8 +11,8 @@
     --border-hover: #667eea;
     --accent-primary: #667eea;
     --accent-hover: #5a6fd8;
-    --gradient-start: #667eea;
-    --gradient-end: #764ba2;
+    --gradient-start: #007AFF;
+    --gradient-end: #FF2D92;
     --shadow-color: rgba(0, 0, 0, 0.1);
     --success-color: #28a745;
     --danger-color: #dc3545;
@@ -32,8 +32,8 @@
         --border-hover: #4a9eff;
         --accent-primary: #4a9eff;
         --accent-hover: #66b3ff;
-        --gradient-start: #4a5fc1;
-        --gradient-end: #5d4e75;
+        --gradient-start: #0A84FF;
+        --gradient-end: #BF5AF2;
         --shadow-color: rgba(0, 0, 0, 0.3);
         --success-color: #4caf50;
         --danger-color: #f44336;
@@ -60,9 +60,9 @@ body {
 }
 
 header {
-    background: linear-gradient(-45deg, var(--gradient-start), var(--gradient-end), var(--gradient-start), var(--gradient-end));
+    background: linear-gradient(-45deg, var(--gradient-start), #5E5CE6, #FF9500, var(--gradient-end), #30D158, var(--gradient-start));
     background-size: 400% 400%;
-    animation: gradientShift 8s ease-in-out infinite;
+    animation: gradientShift 10s ease-in-out infinite;
     color: white;
     padding: 32px;
     text-align: center;
