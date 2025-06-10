@@ -313,6 +313,9 @@ function completeLink(linkId) {
     }
     
     if (response && response.success) {
+      // Trigger celebration animation
+      triggerCelebration();
+      
       // Move link from active to completed
       const linkIndex = allLinks.findIndex(link => link.id === linkId);
       if (linkIndex !== -1) {
@@ -368,4 +371,104 @@ function escapeHtml(text) {
   const div = document.createElement('div');
   div.textContent = text;
   return div.innerHTML;
+}
+
+// Trigger celebration animation
+async function triggerCelebration() {
+  const celebrationContainer = document.getElementById('celebrationContainer');
+  const emojis = ['🎉', '✨', '🌟', '🎈'];
+  const animations = ['celebrateFromBottomLeft', 'celebrateFromBottomRight'];
+  
+  // Create 20 emojis with smooth staggered timing
+  for (let i = 0; i < 20; i++) {
+    // Use requestAnimationFrame for smoother timing
+    await new Promise(resolve => requestAnimationFrame(resolve));
+    
+    const emoji = document.createElement('div');
+    emoji.className = 'celebration-emoji';
+    emoji.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+    
+    // Random position based on animation type
+    const animationType = animations[Math.floor(Math.random() * animations.length)];
+    emoji.style.animationName = animationType;
+    
+    // Set position based on animation type
+    setEmojiPosition(emoji, animationType);
+    
+    // Smooth random variations
+    const delay = (Math.random() * 0.3).toFixed(3);
+    const duration = (2.0 + Math.random() * 1.0).toFixed(3);
+    
+    emoji.style.animationDelay = delay + 's';
+    emoji.style.animationDuration = duration + 's';
+    
+    celebrationContainer.appendChild(emoji);
+    
+    // Clean up after animation with smooth removal
+    cleanupEmoji(emoji, parseFloat(duration) * 1000 + 500);
+    
+    // Smooth stagger delay using requestAnimationFrame
+    await smoothDelay(30 + Math.random() * 40);
+  }
+}
+
+// Set emoji position based on animation type
+function setEmojiPosition(emoji, animationType) {
+  // Add random spread to starting positions (±25px variation)
+  const randomSpread = () => (Math.random() - 0.5) * 50;
+  const baseOffset = -30;
+  
+  switch (animationType) {
+    case 'celebrateFromTopLeft':
+      emoji.style.left = (baseOffset + randomSpread()) + 'px';
+      emoji.style.top = (baseOffset + randomSpread()) + 'px';
+      break;
+    case 'celebrateFromTopRight':
+      emoji.style.right = (baseOffset + randomSpread()) + 'px';
+      emoji.style.top = (baseOffset + randomSpread()) + 'px';
+      break;
+    case 'celebrateFromBottomLeft':
+      emoji.style.left = (baseOffset + randomSpread()) + 'px';
+      emoji.style.bottom = (baseOffset + randomSpread()) + 'px';
+      break;
+    case 'celebrateFromBottomRight':
+      emoji.style.right = (baseOffset + randomSpread()) + 'px';
+      emoji.style.bottom = (baseOffset + randomSpread()) + 'px';
+      break;
+  }
+  
+  // Add random variations to the animation transform for varied paths
+  const randomEndSpread = () => (Math.random() - 0.5) * 100;
+  emoji.style.setProperty('--random-x', randomEndSpread() + 'px');
+  emoji.style.setProperty('--random-y', randomEndSpread() + 'px');
+}
+
+// Smooth delay using requestAnimationFrame
+function smoothDelay(ms) {
+  return new Promise(resolve => {
+    const start = performance.now();
+    function frame() {
+      if (performance.now() - start >= ms) {
+        resolve();
+      } else {
+        requestAnimationFrame(frame);
+      }
+    }
+    requestAnimationFrame(frame);
+  });
+}
+
+// Clean up emoji with smooth timing
+function cleanupEmoji(emoji, delay) {
+  setTimeout(() => {
+    if (emoji.parentNode) {
+      emoji.style.transition = 'opacity 0.3s ease-out';
+      emoji.style.opacity = '0';
+      setTimeout(() => {
+        if (emoji.parentNode) {
+          emoji.parentNode.removeChild(emoji);
+        }
+      }, 300);
+    }
+  }, delay);
 } 
