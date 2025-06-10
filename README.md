@@ -1,6 +1,6 @@
 # Read Later Extension 📚
 
-A powerful browser extension for Chrome and Opera that helps you manage your reading queue with priorities and time estimates.
+A simple browser extension for Chrome based browsers that helps you manage your reading queue with priorities and time estimates.
 
 ## Features ✨
 
@@ -23,9 +23,9 @@ A powerful browser extension for Chrome and Opera that helps you manage your rea
 4. Click "Load unpacked" and select the extension folder
 5. The Read Later extension should now appear in your browser toolbar
 
-### From Chrome Web Store (Coming Soon)
+### From Chrome Web Store (NOT Coming Soon)
 
-The extension will be available on the Chrome Web Store soon!
+I have no plans on posting this on any extension store whatsoever.
 
 ## Usage 📖
 
