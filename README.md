@@ -59,31 +59,6 @@ I have no plans on posting this on any extension store whatsoever.
 - Import previously exported data
 - Clear all data if needed
 
-## File Structure 📁
-
-```
-read-later-extension/
-├── manifest.json              # Extension configuration
-├── background/
-│   └── background.js         # Service worker for background tasks
-├── content/
-│   └── content.js           # Content script for page interaction
-├── popup/
-│   ├── popup.html          # Main popup interface
-│   ├── popup.css           # Popup styling
-│   └── popup.js            # Popup functionality
-├── options/
-│   ├── options.html        # Options page
-│   ├── options.css         # Options styling
-│   └── options.js          # Options functionality
-├── icons/
-│   ├── icon16.png         # 16x16 icon
-│   ├── icon32.png         # 32x32 icon
-│   ├── icon48.png         # 48x48 icon
-│   └── icon128.png        # 128x128 icon
-└── README.md              # This file
-```
-
 ## Technical Details 🔧
 
 - **Manifest Version**: 3 (latest Chrome extension standard)
