@@ -1,48 +1,26 @@
 // Content script for Read Later extension
 
-// Inject theme-aware styles
-function injectThemeStyles() {
-  if (document.getElementById('readLaterThemeStyles')) return;
+// Inject modern styles from CSS file
+function injectModernStyles() {
+  if (document.getElementById('readLaterModernStyles')) return;
   
-  const style = document.createElement('style');
-  style.id = 'readLaterThemeStyles';
-  style.textContent = `
-    :root {
-      --rl-bg-primary: #ffffff;
-      --rl-bg-overlay: rgba(0, 0, 0, 0.7);
-      --rl-text-primary: #333333;
-      --rl-text-secondary: #666666;
-      --rl-border-color: #e1e5e9;
-      --rl-accent-primary: #007bff;
-      --rl-accent-hover: #0056b3;
-      --rl-success-color: #28a745;
-      --rl-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
-    }
-    
-    @media (prefers-color-scheme: dark) {
-      :root {
-        --rl-bg-primary: #1a1a1a;
-        --rl-bg-overlay: rgba(0, 0, 0, 0.8);
-        --rl-text-primary: #e0e0e0;
-        --rl-text-secondary: #b0b0b0;
-        --rl-border-color: #404040;
-        --rl-accent-primary: #4a9eff;
-        --rl-accent-hover: #66b3ff;
-        --rl-success-color: #4caf50;
-        --rl-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
-      }
-    }
-  `;
-  document.head.appendChild(style);
+  // Inject the CSS file
+  const link = document.createElement('link');
+  link.id = 'readLaterModernStyles';
+  link.rel = 'stylesheet';
+  link.href = globalThis.chrome?.runtime?.getURL('content/content.css');
+  document.head.appendChild(link);
 }
 
 // Listen for messages from background script
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  if (request.action === "showSaveDialog") {
-    injectThemeStyles();
-    showSaveDialog(request.url, request.title);
-  }
-});
+if (globalThis.chrome?.runtime?.onMessage) {
+  globalThis.chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    if (request.action === "showSaveDialog") {
+      injectModernStyles();
+      showSaveDialog(request.url, request.title);
+    }
+  });
+}
 
 // Create and show save dialog
 function showSaveDialog(url, title) {
@@ -87,12 +65,12 @@ function showSaveDialog(url, title) {
     
     <div style="margin-bottom: 16px;">
       <label style="display: block; margin-bottom: 6px; font-weight: 500; color: var(--rl-text-secondary);">Title:</label>
-      <input type="text" id="linkTitle" value="${escapeHtml(title)}" style="width: 100%; padding: 8px 12px; border: 2px solid var(--rl-border-color); border-radius: 6px; font-size: 14px; box-sizing: border-box; background: var(--rl-bg-primary); color: var(--rl-text-primary);">
+      <input type="text" id="linkTitle" value="${escapeDialogHtml(title)}" style="width: 100%; padding: 8px 12px; border: 2px solid var(--rl-border-color); border-radius: 6px; font-size: 14px; box-sizing: border-box; background: var(--rl-bg-primary); color: var(--rl-text-primary);">
     </div>
     
     <div style="margin-bottom: 16px;">
       <label style="display: block; margin-bottom: 6px; font-weight: 500; color: var(--rl-text-secondary);">URL:</label>
-      <input type="text" id="linkUrl" value="${escapeHtml(url)}" style="width: 100%; padding: 8px 12px; border: 2px solid var(--rl-border-color); border-radius: 6px; font-size: 14px; box-sizing: border-box; background: var(--rl-bg-primary); color: var(--rl-text-primary);">
+      <input type="text" id="linkUrl" value="${escapeDialogHtml(url)}" style="width: 100%; padding: 8px 12px; border: 2px solid var(--rl-border-color); border-radius: 6px; font-size: 14px; box-sizing: border-box; background: var(--rl-bg-primary); color: var(--rl-text-primary);">
     </div>
     
     <div style="display: flex; gap: 16px; margin-bottom: 16px;">
@@ -125,37 +103,71 @@ function showSaveDialog(url, title) {
   overlay.appendChild(dialog);
   document.body.appendChild(overlay);
   
-  // Add event listeners
-  document.getElementById('closeDialog').onclick = removeExistingDialog;
-  document.getElementById('cancelSave').onclick = removeExistingDialog;
+  // Prevent page scroll when dialog is open
+  document.body.classList.add('read-later-dialog-open');
   
-  document.getElementById('confirmSave').onclick = () => {
-    const linkData = {
-      title: document.getElementById('linkTitle').value.trim(),
-      url: document.getElementById('linkUrl').value.trim(),
-      priority: document.getElementById('linkPriority').value,
-      timeToRead: parseInt(document.getElementById('timeToRead').value) || 5,
-      tags: document.getElementById('linkTags').value.split(',').map(tag => tag.trim()).filter(tag => tag)
-    };
-    
-    if (!linkData.title || !linkData.url) {
-      alert('Please fill in both title and URL');
-      return;
-    }
-    
-    // Send to background script to save
-    chrome.runtime.sendMessage({
-      action: "saveLink",
-      data: linkData
-    }, (response) => {
-      if (response.success) {
-        showSuccessMessage();
-        setTimeout(removeExistingDialog, 1500);
-      } else {
-        alert('Failed to save link: ' + response.error);
+  // Add event listeners with null safety
+  const closeButton = document.getElementById('closeDialog');
+  const cancelButton = document.getElementById('cancelSave');
+  const confirmButton = document.getElementById('confirmSave');
+  
+  if (closeButton) {
+    closeButton.onclick = removeExistingDialog;
+  }
+  if (cancelButton) {
+    cancelButton.onclick = removeExistingDialog;
+  }
+  
+  if (confirmButton) {
+    confirmButton.onclick = () => {
+      const titleElement = document.getElementById('linkTitle') as HTMLInputElement;
+      const urlElement = document.getElementById('linkUrl') as HTMLInputElement;
+      const priorityElement = document.getElementById('linkPriority') as HTMLSelectElement;
+      const timeElement = document.getElementById('timeToRead') as HTMLInputElement;
+      const tagsElement = document.getElementById('linkTags') as HTMLInputElement;
+      
+      if (!titleElement || !urlElement || !priorityElement || !timeElement || !tagsElement) {
+        alert('Dialog elements not found');
+        return;
       }
-    });
-  };
+      
+      const linkData = {
+        title: titleElement.value.trim(),
+        url: urlElement.value.trim(),
+        priority: priorityElement.value,
+        timeToRead: parseInt(timeElement.value) || 5,
+        tags: tagsElement.value.split(',').map(tag => tag.trim()).filter(tag => tag)
+      };
+      
+      if (!linkData.title || !linkData.url) {
+        alert('Please fill in both title and URL');
+        return;
+      }
+      
+      // Send to background script to save
+      if (globalThis.chrome?.runtime?.sendMessage) {
+        globalThis.chrome.runtime.sendMessage({
+          action: "saveLink",
+          data: linkData
+        }, (response) => {
+          if (globalThis.chrome?.runtime?.lastError) {
+            console.error('Runtime error:', globalThis.chrome.runtime.lastError);
+            alert('Failed to save link: ' + globalThis.chrome.runtime.lastError.message);
+            return;
+          }
+          
+          if (response?.success) {
+            showSuccessMessage();
+            setTimeout(removeExistingDialog, 1500);
+          } else {
+            alert('Failed to save link: ' + (response?.error || 'Unknown error'));
+          }
+        });
+      } else {
+        alert('Chrome extension API not available');
+      }
+    };
+  }
   
   // Close on overlay click
   overlay.onclick = (e) => {
@@ -164,9 +176,12 @@ function showSaveDialog(url, title) {
     }
   };
   
-  // Focus title input
+  // Focus title input with null safety
   setTimeout(() => {
-    document.getElementById('linkTitle').select();
+    const titleInput = document.getElementById('linkTitle') as HTMLInputElement;
+    if (titleInput) {
+      titleInput.select();
+    }
   }, 100);
 }
 
@@ -175,21 +190,25 @@ function removeExistingDialog() {
   if (existing) {
     existing.remove();
   }
+  
+  // Re-enable page scroll
+  document.body.classList.remove('read-later-dialog-open');
 }
 
 function showSuccessMessage() {
-  const dialog = document.querySelector('#readLaterOverlay > div');
+  const overlay = document.getElementById('readLaterOverlay');
+  const dialog = overlay?.querySelector('div');
   if (dialog) {
     dialog.innerHTML = `
-      <div style="text-align: center; padding: 20px;">
-        <div style="font-size: 48px; color: var(--rl-success-color); margin-bottom: 16px;">✓</div>
-        <h3 style="margin: 0; color: var(--rl-text-primary); font-size: 18px;">Saved successfully!</h3>
+      <div class="success-state">
+        <div class="success-icon">✓</div>
+        <h3 class="success-title">Saved successfully!</h3>
       </div>
     `;
   }
 }
 
-function escapeHtml(text) {
+function escapeDialogHtml(text) {
   const div = document.createElement('div');
   div.textContent = text;
   return div.innerHTML;

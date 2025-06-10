@@ -1,0 +1,367 @@
+/* Modern Content Script Styles */
+
+/* CSS Variables for the content script dialog */
+#readLaterOverlay {
+  /* Modern color palette */
+  --rl-bg-primary: #ffffff;
+  --rl-bg-overlay: rgba(0, 0, 0, 0.4);
+  --rl-text-primary: #1d1d1f;
+  --rl-text-secondary: #86868b;
+  --rl-border-color: #d2d2d7;
+  --rl-accent-primary: #007aff;
+  --rl-accent-hover: #0056b3;
+  --rl-success-color: #30d158;
+  --rl-shadow: 0 24px 60px rgba(0, 0, 0, 0.25), 0 8px 32px rgba(0, 0, 0, 0.15);
+  --rl-radius: 16px;
+  --rl-radius-small: 8px;
+  --rl-transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  --rl-transition-bounce: 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+@media (prefers-color-scheme: dark) {
+  #readLaterOverlay {
+    --rl-bg-primary: #1c1c1e;
+    --rl-bg-overlay: rgba(0, 0, 0, 0.6);
+    --rl-text-primary: #ffffff;
+    --rl-text-secondary: #98989d;
+    --rl-border-color: #38383a;
+    --rl-accent-primary: #0a84ff;
+    --rl-accent-hover: #409cff;
+    --rl-success-color: #30d158;
+    --rl-shadow: 0 24px 60px rgba(0, 0, 0, 0.4), 0 8px 32px rgba(0, 0, 0, 0.3);
+  }
+}
+
+/* Overlay container */
+#readLaterOverlay {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  background: var(--rl-bg-overlay) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  z-index: 999999 !important;
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif !important;
+  animation: fadeIn 0.3s ease-out !important;
+  padding: 20px !important;
+  box-sizing: border-box !important;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Main dialog container */
+#readLaterOverlay > div {
+  background: var(--rl-bg-primary) !important;
+  color: var(--rl-text-primary) !important;
+  border-radius: var(--rl-radius) !important;
+  padding: 32px !important;
+  max-width: 540px !important;
+  width: 100% !important;
+  max-height: 90vh !important;
+  overflow-y: auto !important;
+  box-shadow: var(--rl-shadow) !important;
+  position: relative !important;
+  transform: scale(0.9) !important;
+  animation: dialogSlideIn var(--rl-transition-bounce) forwards !important;
+  border: 1px solid var(--rl-border-color) !important;
+}
+
+@keyframes dialogSlideIn {
+  from {
+    transform: scale(0.9) translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1) translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Header section */
+#readLaterOverlay h3 {
+  margin: 0 0 24px 0 !important;
+  color: var(--rl-text-primary) !important;
+  font-size: 24px !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.01em !important;
+  line-height: 1.2 !important;
+}
+
+/* Close button */
+#readLaterOverlay #closeDialog {
+  background: none !important;
+  border: none !important;
+  font-size: 28px !important;
+  cursor: pointer !important;
+  color: var(--rl-text-secondary) !important;
+  padding: 8px !important;
+  width: 40px !important;
+  height: 40px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: var(--rl-radius-small) !important;
+  transition: var(--rl-transition) !important;
+  position: absolute !important;
+  top: 20px !important;
+  right: 20px !important;
+}
+
+#readLaterOverlay #closeDialog:hover {
+  background: var(--rl-border-color) !important;
+  color: var(--rl-text-primary) !important;
+  transform: scale(1.1) !important;
+}
+
+/* Form sections */
+#readLaterOverlay > div > div {
+  margin-bottom: 24px !important;
+}
+
+#readLaterOverlay > div > div:last-child {
+  margin-bottom: 0 !important;
+}
+
+/* Labels */
+#readLaterOverlay label {
+  display: block !important;
+  margin-bottom: 8px !important;
+  font-weight: 600 !important;
+  color: var(--rl-text-primary) !important;
+  font-size: 16px !important;
+  line-height: 1.3 !important;
+}
+
+/* Input fields */
+#readLaterOverlay input[type="text"],
+#readLaterOverlay input[type="number"],
+#readLaterOverlay select {
+  width: 100% !important;
+  padding: 14px 16px !important;
+  border: 2px solid var(--rl-border-color) !important;
+  border-radius: var(--rl-radius-small) !important;
+  font-size: 16px !important;
+  box-sizing: border-box !important;
+  background: var(--rl-bg-primary) !important;
+  color: var(--rl-text-primary) !important;
+  transition: var(--rl-transition) !important;
+  font-family: inherit !important;
+  font-weight: 500 !important;
+  line-height: 1.4 !important;
+}
+
+#readLaterOverlay input[type="text"]:focus,
+#readLaterOverlay input[type="number"]:focus,
+#readLaterOverlay select:focus {
+  outline: none !important;
+  border-color: var(--rl-accent-primary) !important;
+  box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.1) !important;
+  transform: scale(1.02) !important;
+}
+
+#readLaterOverlay input[type="text"]::placeholder {
+  color: var(--rl-text-secondary) !important;
+  opacity: 0.8 !important;
+}
+
+/* Flex container for priority and time */
+#readLaterOverlay > div > div[style*="display: flex"] {
+  display: flex !important;
+  gap: 20px !important;
+  margin-bottom: 24px !important;
+}
+
+#readLaterOverlay > div > div[style*="flex: 1"] {
+  flex: 1 !important;
+}
+
+/* Button container */
+#readLaterOverlay > div > div[style*="justify-content: flex-end"] {
+  display: flex !important;
+  gap: 16px !important;
+  justify-content: flex-end !important;
+  margin-top: 32px !important;
+  padding-top: 24px !important;
+  border-top: 1px solid var(--rl-border-color) !important;
+}
+
+/* Buttons */
+#readLaterOverlay button {
+  padding: 14px 28px !important;
+  border-radius: var(--rl-radius-small) !important;
+  cursor: pointer !important;
+  font-size: 16px !important;
+  font-weight: 600 !important;
+  transition: var(--rl-transition) !important;
+  border: none !important;
+  font-family: inherit !important;
+  min-width: 120px !important;
+  position: relative !important;
+  overflow: hidden !important;
+}
+
+#readLaterOverlay button::before {
+  content: '' !important;
+  position: absolute !important;
+  top: 50% !important;
+  left: 50% !important;
+  width: 0 !important;
+  height: 0 !important;
+  background: rgba(255, 255, 255, 0.3) !important;
+  border-radius: 50% !important;
+  transform: translate(-50%, -50%) !important;
+  transition: var(--rl-transition) !important;
+}
+
+#readLaterOverlay button:hover::before {
+  width: 100px !important;
+  height: 100px !important;
+}
+
+#readLaterOverlay button:active {
+  transform: scale(0.95) !important;
+}
+
+/* Cancel button */
+#readLaterOverlay #cancelSave {
+  background: var(--rl-bg-primary) !important;
+  color: var(--rl-text-secondary) !important;
+  border: 2px solid var(--rl-border-color) !important;
+}
+
+#readLaterOverlay #cancelSave:hover {
+  background: var(--rl-border-color) !important;
+  color: var(--rl-text-primary) !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Confirm button */
+#readLaterOverlay #confirmSave {
+  background: linear-gradient(135deg, var(--rl-accent-primary), var(--rl-accent-hover)) !important;
+  color: white !important;
+  box-shadow: 0 4px 12px rgba(0, 122, 255, 0.3) !important;
+}
+
+#readLaterOverlay #confirmSave:hover {
+  background: linear-gradient(135deg, var(--rl-accent-hover), #004494) !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 8px 24px rgba(0, 122, 255, 0.4) !important;
+}
+
+/* Success state */
+#readLaterOverlay .success-state {
+  text-align: center !important;
+  padding: 40px 20px !important;
+  animation: successSlideIn 0.5s ease-out !important;
+}
+
+@keyframes successSlideIn {
+  from {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+#readLaterOverlay .success-icon {
+  font-size: 64px !important;
+  color: var(--rl-success-color) !important;
+  margin-bottom: 20px !important;
+  display: block !important;
+  animation: successBounce 0.6s ease-out !important;
+}
+
+@keyframes successBounce {
+  0% {
+    transform: scale(0.3);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+#readLaterOverlay .success-title {
+  margin: 0 !important;
+  color: var(--rl-text-primary) !important;
+  font-size: 24px !important;
+  font-weight: 700 !important;
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+  #readLaterOverlay {
+    padding: 16px !important;
+  }
+  
+  #readLaterOverlay > div {
+    padding: 24px !important;
+    max-width: 100% !important;
+    border-radius: 12px !important;
+  }
+  
+  #readLaterOverlay h3 {
+    font-size: 20px !important;
+    margin-bottom: 20px !important;
+  }
+  
+  #readLaterOverlay > div > div[style*="display: flex"] {
+    flex-direction: column !important;
+    gap: 16px !important;
+  }
+  
+  #readLaterOverlay > div > div[style*="justify-content: flex-end"] {
+    flex-direction: column !important;
+    gap: 12px !important;
+  }
+  
+  #readLaterOverlay button {
+    width: 100% !important;
+    min-width: auto !important;
+  }
+  
+  #readLaterOverlay #closeDialog {
+    top: 16px !important;
+    right: 16px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  #readLaterOverlay {
+    padding: 12px !important;
+  }
+  
+  #readLaterOverlay > div {
+    padding: 20px !important;
+  }
+  
+  #readLaterOverlay input[type="text"],
+  #readLaterOverlay input[type="number"],
+  #readLaterOverlay select {
+    padding: 12px 14px !important;
+    font-size: 16px !important;
+  }
+}
+
+/* Prevent page scroll when overlay is active */
+body.read-later-dialog-open {
+  overflow: hidden !important;
+} 

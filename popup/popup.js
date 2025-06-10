@@ -302,14 +302,28 @@ async function handleDeleteLink(linkId) {
  */
 async function handleCompleteLink(linkId) {
   try {
+    // Find and animate the specific link item before completion
+    const linkElement = document.querySelector(`[data-id="${linkId}"]`)?.closest('.link-item');
+    if (linkElement) {
+      await animateItemCompletion(linkElement);
+    }
+
     const response = await sendRuntimeMessage({ 
       action: 'completeLink', 
       id: linkId 
     });
     
     if (response.success) {
+      // Add completed state to the item (grayed out, smaller, non-interactable)
+      if (linkElement) {
+        linkElement.classList.add('completed-pending');
+      }
+      
       // Trigger celebration animation
       await triggerCelebration();
+      
+      // Wait a bit to show the completed state before removing
+      await new Promise(resolve => setTimeout(resolve, 800));
       
       // Move link from active to completed
       const linkIndex = allLinks.findIndex(link => link.id === linkId);
@@ -374,6 +388,35 @@ function handleLinkClick(url) {
     chrome.tabs.create({ url });
     window.close();
   }
+}
+
+/**
+ * Animate an individual link item when it's completed
+ * @param {HTMLElement} linkElement - The link item element to animate
+ */
+async function animateItemCompletion(linkElement) {
+  return new Promise((resolve) => {
+    // Add the completing animation class
+    linkElement.classList.add('completing');
+    
+    // Listen for animation end
+    const handleAnimationEnd = () => {
+      linkElement.classList.remove('completing');
+      linkElement.removeEventListener('animationend', handleAnimationEnd);
+      resolve();
+    };
+    
+    linkElement.addEventListener('animationend', handleAnimationEnd);
+    
+    // Fallback timeout in case animation doesn't fire
+    setTimeout(() => {
+      if (linkElement.classList.contains('completing')) {
+        linkElement.classList.remove('completing');
+        linkElement.removeEventListener('animationend', handleAnimationEnd);
+        resolve();
+      }
+    }, 700);
+  });
 }
 
 /**
