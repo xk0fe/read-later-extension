@@ -12,7 +12,7 @@ let filteredLinks = [];
 /** @type {'active'|'completed'} */
 let currentView = 'active';
 
-// DOM elements - using safe getters
+// DOM elements - using safe getters for modern design
 const elements = {
   linksList: safeGetElement('linksList'),
   linkCount: safeGetElement('linkCount'),
@@ -24,7 +24,9 @@ const elements = {
   searchInput: safeGetInputElement('searchInput'),
   activeTab: safeGetButtonElement('activeTab'),
   completedTab: safeGetButtonElement('completedTab'),
-  celebrationContainer: safeGetElement('celebrationContainer')
+  celebrationContainer: safeGetElement('celebrationContainer'),
+  filterToggle: safeGetButtonElement('filterToggle'),
+  filtersPanel: safeGetElement('filtersPanel')
 };
 
 // Initialize popup when DOM is ready
@@ -61,12 +63,19 @@ function setupEventListeners() {
     elements.searchInput.addEventListener('input', debounce(applyFilters, 300));
   }
 
-  // View tabs
+  // View tabs (modern segmented control)
   if (elements.activeTab) {
     elements.activeTab.addEventListener('click', () => switchView('active'));
   }
   if (elements.completedTab) {
     elements.completedTab.addEventListener('click', () => switchView('completed'));
+  }
+
+  // Filter toggle for modern design
+  if (elements.filterToggle && elements.filtersPanel) {
+    elements.filterToggle.addEventListener('click', () => {
+      toggleFiltersPanel(elements.filtersPanel, elements.filterToggle);
+    });
   }
 }
 
@@ -90,13 +99,13 @@ async function loadAllData() {
 }
 
 /**
- * Switch between active and completed views
+ * Switch between active and completed views (modern segmented control)
  * @param {'active'|'completed'} view - View to switch to
  */
 function switchView(view) {
   currentView = view;
   
-  // Update tab states
+  // Update segmented control states
   if (elements.activeTab && elements.completedTab) {
     if (view === 'active') {
       elements.activeTab.classList.add('active');
@@ -183,7 +192,7 @@ function renderLinks() {
     } else {
       // Show no matches message
       elements.linksList.style.display = 'block';
-      elements.linksList.innerHTML = '<div class="loading">No links match your filters</div>';
+      showLoading(elements.linksList, 'No links match your filters');
       elements.emptyState.style.display = 'none';
     }
     return;
@@ -258,7 +267,7 @@ async function handleAddCurrentPage() {
  * @param {string} linkId - ID of link to delete
  */
 async function handleDeleteLink(linkId) {
-  if (!confirm('Are you sure you want to delete this link?')) {
+  if (!confirm('Delete this link?')) {
     return;
   }
 
@@ -376,36 +385,35 @@ async function triggerCelebration() {
   const emojis = ['🎉', '✨', '🌟', '🎈'];
   const animations = ['celebrateFromBottomLeft', 'celebrateFromBottomRight'];
   
-  // Create 20 emojis with smooth staggered timing
-  for (let i = 0; i < 20; i++) {
-    // Use requestAnimationFrame for smoother timing
+  // Create 15 emojis for a more subtle celebration
+  for (let i = 0; i < 15; i++) {
     await new Promise(resolve => requestAnimationFrame(resolve));
     
     const emoji = document.createElement('div');
     emoji.className = 'celebration-emoji';
     emoji.textContent = emojis[Math.floor(Math.random() * emojis.length)];
     
-    // Random position based on animation type
+    // Random animation type
     const animationType = animations[Math.floor(Math.random() * animations.length)];
     emoji.style.animationName = animationType;
     
     // Set position based on animation type
     setEmojiPosition(emoji, animationType);
     
-    // Smooth random variations
+    // Timing variations
     const delay = (Math.random() * 0.3).toFixed(3);
-    const duration = (2.0 + Math.random() * 1.0).toFixed(3);
+    const duration = (1.5 + Math.random() * 0.5).toFixed(3);
     
     emoji.style.animationDelay = delay + 's';
     emoji.style.animationDuration = duration + 's';
     
     elements.celebrationContainer.appendChild(emoji);
     
-    // Clean up after animation with smooth removal
+    // Clean up after animation
     cleanupEmoji(emoji, parseFloat(duration) * 1000 + 500);
     
-    // Smooth stagger delay using requestAnimationFrame
-    await smoothDelay(30 + Math.random() * 40);
+    // Stagger delay
+    await smoothDelay(40 + Math.random() * 30);
   }
 }
 
@@ -415,19 +423,10 @@ async function triggerCelebration() {
  * @param {string} animationType - Animation type
  */
 function setEmojiPosition(emoji, animationType) {
-  // Add random spread to starting positions (±25px variation)
   const randomSpread = () => (Math.random() - 0.5) * 50;
   const baseOffset = -30;
   
   switch (animationType) {
-    case 'celebrateFromTopLeft':
-      emoji.style.left = (baseOffset + randomSpread()) + 'px';
-      emoji.style.top = (baseOffset + randomSpread()) + 'px';
-      break;
-    case 'celebrateFromTopRight':
-      emoji.style.right = (baseOffset + randomSpread()) + 'px';
-      emoji.style.top = (baseOffset + randomSpread()) + 'px';
-      break;
     case 'celebrateFromBottomLeft':
       emoji.style.left = (baseOffset + randomSpread()) + 'px';
       emoji.style.bottom = (baseOffset + randomSpread()) + 'px';
@@ -438,7 +437,7 @@ function setEmojiPosition(emoji, animationType) {
       break;
   }
   
-  // Add random variations to the animation transform for varied paths
+  // Add random variations
   const randomEndSpread = () => (Math.random() - 0.5) * 100;
   emoji.style.setProperty('--random-x', randomEndSpread() + 'px');
   emoji.style.setProperty('--random-y', randomEndSpread() + 'px');

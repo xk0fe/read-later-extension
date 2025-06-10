@@ -10,7 +10,6 @@
  */
 function createLinkElementHTML(link, viewType) {
   const domain = getDomain(link.url);
-  const dateAdded = new Date(link.dateAdded).toLocaleDateString();
   
   return `
     <div class="link-item">
@@ -55,32 +54,32 @@ function createLinkElementHTML(link, viewType) {
 }
 
 /**
- * Updates the empty state display
+ * Updates the empty state display for modern design
  * @param {HTMLElement} emptyState - Empty state container
  * @param {'active'|'completed'} viewType - Current view type
  */
 function updateEmptyState(emptyState, viewType) {
   if (!emptyState) return;
 
-  const emptyIcon = emptyState.querySelector('.empty-icon');
-  const emptyTitle = emptyState.querySelector('h3');
-  const emptyText = emptyState.querySelector('p');
+  const emptyIllustration = emptyState.querySelector('.empty-illustration');
+  const emptyTitle = emptyState.querySelector('.empty-title');
+  const emptySubtitle = emptyState.querySelector('.empty-subtitle');
   
-  if (!emptyIcon || !emptyTitle || !emptyText) return;
+  if (!emptyIllustration || !emptyTitle || !emptySubtitle) return;
 
   if (viewType === 'active') {
-    emptyIcon.textContent = '📚';
-    emptyTitle.textContent = 'No links saved yet';
-    emptyText.textContent = 'Right-click on any page or link and select "Save to Read Later"';
+    emptyIllustration.textContent = '📚';
+    emptyTitle.textContent = 'No links yet';
+    emptySubtitle.textContent = 'Tap + to save your first link';
   } else {
-    emptyIcon.textContent = '✅';
-    emptyTitle.textContent = 'No completed items';
-    emptyText.textContent = 'Complete some links from your active list to see them here';
+    emptyIllustration.textContent = '✅';
+    emptyTitle.textContent = 'Nothing completed';
+    emptySubtitle.textContent = 'Complete some links to see them here';
   }
 }
 
 /**
- * Updates statistics display
+ * Updates statistics display with modern compact formatting
  * @param {ReadLaterLink[]} links - Array of links to calculate stats from
  * @param {HTMLElement} countElement - Element to display count
  * @param {HTMLElement} timeElement - Element to display total time
@@ -91,8 +90,9 @@ function updateStatsDisplay(links, countElement, timeElement) {
   const count = links.length;
   const totalTime = links.reduce((sum, link) => sum + (link.timeToRead || 0), 0);
   
-  countElement.textContent = formatCount(count, 'item');
-  timeElement.textContent = `${totalTime} min total`;
+  // Modern compact formatting
+  countElement.textContent = count.toString();
+  timeElement.textContent = totalTime === 1 ? '1 min' : `${totalTime} min`;
 }
 
 /**
@@ -102,7 +102,7 @@ function updateStatsDisplay(links, countElement, timeElement) {
  */
 function showError(container, message) {
   if (!container) return;
-  container.innerHTML = `<div class="loading" style="color: #dc3545;">${escapeHtml(message)}</div>`;
+  container.innerHTML = `<div class="modern-loading" style="color: #ff3b30;">${escapeHtml(message)}</div>`;
 }
 
 /**
@@ -112,7 +112,26 @@ function showError(container, message) {
  */
 function showLoading(container, message = 'Loading...') {
   if (!container) return;
-  container.innerHTML = `<div class="loading">${escapeHtml(message)}</div>`;
+  container.innerHTML = `<div class="modern-loading">${escapeHtml(message)}</div>`;
+}
+
+/**
+ * Toggles the filters panel visibility
+ * @param {HTMLElement} filtersPanel - Filters panel element
+ * @param {HTMLElement} filterToggle - Filter toggle button
+ */
+function toggleFiltersPanel(filtersPanel, filterToggle) {
+  if (!filtersPanel || !filterToggle) return;
+
+  const isVisible = filtersPanel.classList.contains('show');
+  
+  if (isVisible) {
+    filtersPanel.classList.remove('show');
+    filterToggle.style.background = 'none';
+  } else {
+    filtersPanel.classList.add('show');
+    filterToggle.style.background = 'rgba(0, 0, 0, 0.05)';
+  }
 }
 
 /**
@@ -128,6 +147,7 @@ function attachLinkEventListeners(handlers) {
   document.querySelectorAll('.delete-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
       e.preventDefault();
+      e.stopPropagation();
       if (btn instanceof HTMLElement && btn.dataset.id) {
         handlers.onDelete?.(btn.dataset.id);
       }
@@ -138,6 +158,7 @@ function attachLinkEventListeners(handlers) {
   document.querySelectorAll('.complete-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
       e.preventDefault();
+      e.stopPropagation();
       if (btn instanceof HTMLElement && btn.dataset.id) {
         handlers.onComplete?.(btn.dataset.id);
       }
@@ -148,6 +169,7 @@ function attachLinkEventListeners(handlers) {
   document.querySelectorAll('.uncomplete-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
       e.preventDefault();
+      e.stopPropagation();
       if (btn instanceof HTMLElement && btn.dataset.id) {
         handlers.onUncomplete?.(btn.dataset.id);
       }
@@ -157,6 +179,7 @@ function attachLinkEventListeners(handlers) {
   // Link titles
   document.querySelectorAll('.link-title').forEach(link => {
     link.addEventListener('click', (e) => {
+      e.preventDefault();
       if (link instanceof HTMLAnchorElement && link.href) {
         handlers.onLinkClick?.(link.href);
       }
