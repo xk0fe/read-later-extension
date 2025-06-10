@@ -1,6 +1,18 @@
 {
   "activeLinks": [
     {
+      "dateAdded": "2025-06-10T03:00:27.582Z",
+      "id": "1749524427582",
+      "priority": "medium",
+      "tags": [
+        "react native",
+        "programming"
+      ],
+      "timeToRead": 26,
+      "title": "Goodbye, useEffect: David Khourshid - YouTube",
+      "url": "https://www.youtube.com/watch?v=HPoC-k7Rxwo"
+    },
+    {
       "dateAdded": "2025-06-10T03:43:38.898Z",
       "id": "1749527018898",
       "priority": "high",
@@ -12,18 +24,6 @@
       "timeToRead": 20,
       "title": "WWDC25: Profile and optimize power usage in your app | Apple - YouTube",
       "url": "https://www.youtube.com/watch?v=vccG9jw83I4"
-    },
-    {
-      "dateAdded": "2025-06-10T03:00:27.582Z",
-      "id": "1749524427582",
-      "priority": "medium",
-      "tags": [
-        "react native",
-        "programming"
-      ],
-      "timeToRead": 26,
-      "title": "Goodbye, useEffect: David Khourshid - YouTube",
-      "url": "https://www.youtube.com/watch?v=HPoC-k7Rxwo"
     },
     {
       "dateAdded": "2025-06-10T02:59:32.801Z",
@@ -40,6 +40,6 @@
     }
   ],
   "completedLinks": [],
-  "exportDate": "2025-06-10T04:16:25.092Z",
+  "exportDate": "2025-06-10T04:38:39.735Z",
   "version": "2.0.0"
 }

@@ -1,91 +1,157 @@
-// Options page script for Read Later extension
+/**
+ * @fileoverview Options page script for Read Later extension
+ */
 
-// DOM elements
-const defaultPriority = document.getElementById('defaultPriority');
-const defaultTime = document.getElementById('defaultTime');
-const showNotifications = document.getElementById('showNotifications');
-const totalLinks = document.getElementById('totalLinks');
-const totalTime = document.getElementById('totalTime');
-const exportData = document.getElementById('exportData');
-const importData = document.getElementById('importData');
-const importFile = document.getElementById('importFile');
-const clearAllData = document.getElementById('clearAllData');
-const saveSettings = document.getElementById('saveSettings');
-const saveStatus = document.getElementById('saveStatus');
+// DOM elements - using safe getters
+const elements = {
+  defaultPriority: safeGetSelectElement('defaultPriority'),
+  defaultTime: safeGetInputElement('defaultTime'),
+  showNotifications: safeGetInputElement('showNotifications'),
+  totalLinks: safeGetElement('totalLinks'),
+  totalTimeDisplay: safeGetElement('totalTimeDisplay'),
+  exportData: safeGetButtonElement('exportData'),
+  importData: safeGetButtonElement('importData'),
+  importFile: safeGetInputElement('importFile'),
+  clearAllData: safeGetButtonElement('clearAllData'),
+  saveSettings: safeGetButtonElement('saveSettings'),
+  saveStatus: safeGetElement('saveStatus')
+};
 
-// Initialize options page
-document.addEventListener('DOMContentLoaded', () => {
-  loadSettings();
-  loadStats();
+// Initialize options page when DOM is ready
+document.addEventListener('DOMContentLoaded', initializeOptions);
+
+/**
+ * Initialize the options page
+ */
+async function initializeOptions() {
+  await Promise.all([
+    loadSettings(),
+    loadStats()
+  ]);
   setupEventListeners();
-});
-
-// Setup event listeners
-function setupEventListeners() {
-  saveSettings.addEventListener('click', saveSettingsToStorage);
-  exportData.addEventListener('click', exportDataToFile);
-  importData.addEventListener('click', () => importFile.click());
-  importFile.addEventListener('change', importDataFromFile);
-  clearAllData.addEventListener('click', clearAllDataConfirm);
 }
 
-// Load settings from storage
-function loadSettings() {
-  chrome.storage.sync.get(['readLaterSettings'], (result) => {
+/**
+ * Setup all event listeners
+ */
+function setupEventListeners() {
+  if (elements.saveSettings) {
+    elements.saveSettings.addEventListener('click', handleSaveSettings);
+  }
+  if (elements.exportData) {
+    elements.exportData.addEventListener('click', handleExportData);
+  }
+  if (elements.importData && elements.importFile) {
+    elements.importData.addEventListener('click', () => elements.importFile?.click());
+  }
+  if (elements.importFile) {
+    elements.importFile.addEventListener('change', handleImportData);
+  }
+  if (elements.clearAllData) {
+    elements.clearAllData.addEventListener('click', handleClearAllData);
+  }
+}
+
+/**
+ * Load settings from storage
+ */
+async function loadSettings() {
+  try {
+    if (!chrome?.storage?.sync?.get) {
+      throw new Error('Chrome storage API not available');
+    }
+
+    const result = await new Promise((resolve) => {
+      chrome.storage.sync.get(['readLaterSettings'], resolve);
+    });
+
     const settings = result.readLaterSettings || {};
     
-    defaultPriority.value = settings.defaultPriority || 'medium';
-    defaultTime.value = settings.defaultTime || 5;
-    showNotifications.checked = settings.showNotifications !== false;
-  });
+    if (elements.defaultPriority) {
+      elements.defaultPriority.value = settings.defaultPriority || 'medium';
+    }
+    if (elements.defaultTime) {
+      elements.defaultTime.value = (settings.defaultTime || 5).toString();
+    }
+    if (elements.showNotifications) {
+      elements.showNotifications.checked = settings.showNotifications !== false;
+    }
+  } catch (error) {
+    console.error('Failed to load settings:', error);
+    showSaveStatus('Failed to load settings', true);
+  }
 }
 
-// Load statistics
-function loadStats() {
-  Promise.all([
-    new Promise(resolve => {
-      chrome.runtime.sendMessage({ action: 'getLinks' }, resolve);
-    }),
-    new Promise(resolve => {
-      chrome.runtime.sendMessage({ action: 'getCompletedLinks' }, resolve);
-    })
-  ]).then(([activeResponse, completedResponse]) => {
-    const activeLinks = activeResponse.success ? activeResponse.data : [];
-    const completedLinks = completedResponse.success ? completedResponse.data : [];
+/**
+ * Load statistics from storage
+ */
+async function loadStats() {
+  try {
+    const [activeResponse, completedResponse] = await Promise.all([
+      sendRuntimeMessage({ action: 'getLinks' }),
+      sendRuntimeMessage({ action: 'getCompletedLinks' })
+    ]);
+
+    const activeLinks = activeResponse.success ? (activeResponse.data || []) : [];
+    const completedLinks = completedResponse.success ? (completedResponse.data || []) : [];
     
     const totalLinksCount = activeLinks.length + completedLinks.length;
-    const totalTimeValue = [...activeLinks, ...completedLinks].reduce((sum, link) => sum + link.timeToRead, 0);
+    const totalTimeValue = [...activeLinks, ...completedLinks].reduce((sum, link) => {
+      return sum + ((link && typeof link === 'object' && typeof link.timeToRead === 'number') ? link.timeToRead : 0);
+    }, 0);
     
-    totalLinks.textContent = `${totalLinksCount} (${activeLinks.length} active, ${completedLinks.length} completed)`;
-    totalTime.textContent = totalTimeValue;
-  });
+    if (elements.totalLinks) {
+      elements.totalLinks.textContent = `${totalLinksCount} (${activeLinks.length} active, ${completedLinks.length} completed)`;
+    }
+    if (elements.totalTimeDisplay) {
+      elements.totalTimeDisplay.textContent = totalTimeValue.toString();
+    }
+  } catch (error) {
+    console.error('Failed to load stats:', error);
+    if (elements.totalLinks) {
+      elements.totalLinks.textContent = 'Error loading stats';
+    }
+  }
 }
 
-// Save settings to storage
-function saveSettingsToStorage() {
-  const settings = {
-    defaultPriority: defaultPriority.value,
-    defaultTime: parseInt(defaultTime.value),
-    showNotifications: showNotifications.checked
-  };
-  
-  chrome.storage.sync.set({ readLaterSettings: settings }, () => {
+/**
+ * Handle saving settings to storage
+ */
+async function handleSaveSettings() {
+  try {
+    if (!chrome?.storage?.sync?.set) {
+      throw new Error('Chrome storage API not available');
+    }
+
+    const settings = {
+      defaultPriority: elements.defaultPriority?.value || 'medium',
+      defaultTime: parseInt(elements.defaultTime?.value || '5'),
+      showNotifications: elements.showNotifications?.checked !== false
+    };
+    
+    await new Promise((resolve) => {
+      chrome.storage.sync.set({ readLaterSettings: settings }, resolve);
+    });
+
     showSaveStatus('Settings saved successfully!');
-  });
+  } catch (error) {
+    console.error('Failed to save settings:', error);
+    showSaveStatus('Failed to save settings', true);
+  }
 }
 
-// Export data to JSON file
-function exportDataToFile() {
-  Promise.all([
-    new Promise(resolve => {
-      chrome.runtime.sendMessage({ action: 'getLinks' }, resolve);
-    }),
-    new Promise(resolve => {
-      chrome.runtime.sendMessage({ action: 'getCompletedLinks' }, resolve);
-    })
-  ]).then(([activeResponse, completedResponse]) => {
-    const activeLinks = activeResponse.success ? activeResponse.data : [];
-    const completedLinks = completedResponse.success ? completedResponse.data : [];
+/**
+ * Handle exporting data to JSON file
+ */
+async function handleExportData() {
+  try {
+    const [activeResponse, completedResponse] = await Promise.all([
+      sendRuntimeMessage({ action: 'getLinks' }),
+      sendRuntimeMessage({ action: 'getCompletedLinks' })
+    ]);
+
+    const activeLinks = activeResponse.success ? (activeResponse.data || []) : [];
+    const completedLinks = completedResponse.success ? (completedResponse.data || []) : [];
     
     const data = {
       activeLinks: activeLinks,
@@ -106,20 +172,31 @@ function exportDataToFile() {
     
     URL.revokeObjectURL(url);
     showSaveStatus(`Data exported successfully! (${activeLinks.length} active, ${completedLinks.length} completed)`);
-  }).catch(error => {
+  } catch (error) {
+    console.error('Failed to export data:', error);
     showSaveStatus('Failed to export data', true);
-  });
+  }
 }
 
-// Import data from JSON file
-function importDataFromFile(event) {
-  const file = event.target.files[0];
+/**
+ * Handle importing data from JSON file
+ * @param {Event} event - File input change event
+ */
+function handleImportData(event) {
+  const target = event.target;
+  if (!(target instanceof HTMLInputElement) || !target.files) return;
+
+  const file = target.files[0];
   if (!file) return;
   
   const reader = new FileReader();
-  reader.onload = (e) => {
+  reader.onload = async (e) => {
     try {
-      const data = JSON.parse(e.target.result);
+      if (!e.target?.result) {
+        throw new Error('Failed to read file');
+      }
+
+      const data = JSON.parse(e.target.result.toString());
       let activeLinks = [];
       let completedLinks = [];
       
@@ -135,15 +212,6 @@ function importDataFromFile(event) {
       }
       
       // Validate and clean imported links
-      const validateLink = (link) => 
-        link.url && link.title && link.priority && typeof link.timeToRead === 'number';
-      
-      const cleanLink = (link) => ({
-        ...link,
-        id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
-        dateAdded: link.dateAdded || new Date().toISOString()
-      });
-      
       const validActiveLinks = activeLinks.filter(validateLink).map(cleanLink);
       const validCompletedLinks = completedLinks.filter(validateLink).map(cleanLink);
       
@@ -156,70 +224,115 @@ function importDataFromFile(event) {
       // Confirm import
       const message = `Import ${totalValidLinks} links (${validActiveLinks.length} active, ${validCompletedLinks.length} completed)? This will not replace your existing data.`;
       if (confirm(message)) {
-        importLinks(validActiveLinks, validCompletedLinks);
+        await importLinks(validActiveLinks, validCompletedLinks);
       }
       
     } catch (error) {
+      console.error('Import error:', error);
       showSaveStatus('Failed to import data: ' + error.message, true);
     }
     
     // Reset file input
-    event.target.value = '';
+    target.value = '';
   };
   
   reader.readAsText(file);
 }
 
-// Import links to storage
-function importLinks(newActiveLinks, newCompletedLinks) {
-  Promise.all([
-    new Promise(resolve => {
-      chrome.runtime.sendMessage({ action: 'getLinks' }, resolve);
-    }),
-    new Promise(resolve => {
-      chrome.runtime.sendMessage({ action: 'getCompletedLinks' }, resolve);
-    })
-  ]).then(([activeResponse, completedResponse]) => {
-    const existingActiveLinks = activeResponse.success ? activeResponse.data : [];
-    const existingCompletedLinks = completedResponse.success ? completedResponse.data : [];
+/**
+ * Clean and prepare a link for import
+ * @param {*} link - Link to clean
+ * @returns {ReadLaterLink} Cleaned link
+ */
+function cleanLink(link) {
+  return {
+    ...link,
+    id: generateId(),
+    dateAdded: link.dateAdded || new Date().toISOString(),
+    tags: link.tags || []
+  };
+}
+
+/**
+ * Import links to storage
+ * @param {ReadLaterLink[]} newActiveLinks - New active links to import
+ * @param {ReadLaterLink[]} newCompletedLinks - New completed links to import
+ */
+async function importLinks(newActiveLinks, newCompletedLinks) {
+  try {
+    const [activeResponse, completedResponse] = await Promise.all([
+      sendRuntimeMessage({ action: 'getLinks' }),
+      sendRuntimeMessage({ action: 'getCompletedLinks' })
+    ]);
+
+    const existingActiveLinks = activeResponse.success ? (activeResponse.data || []) : [];
+    const existingCompletedLinks = completedResponse.success ? (completedResponse.data || []) : [];
     
     const allActiveLinks = [...existingActiveLinks, ...newActiveLinks];
     const allCompletedLinks = [...existingCompletedLinks, ...newCompletedLinks];
     
-    chrome.storage.local.set({ 
-      readLaterLinks: allActiveLinks,
-      completedLinks: allCompletedLinks
-    }, () => {
-      const totalImported = newActiveLinks.length + newCompletedLinks.length;
-      showSaveStatus(`Successfully imported ${totalImported} links (${newActiveLinks.length} active, ${newCompletedLinks.length} completed)!`);
-      loadStats();
-    });
-  }).catch(error => {
-    showSaveStatus('Failed to import links', true);
-  });
-}
+    if (!chrome?.storage?.local?.set) {
+      throw new Error('Chrome storage API not available');
+    }
 
-// Clear all data with confirmation
-function clearAllDataConfirm() {
-  const confirmation = prompt(
-    'This will delete ALL your saved links (both active and completed) permanently.\n\n' +
-    'Type "DELETE" to confirm:'
-  );
-  
-  if (confirmation === 'DELETE') {
-    chrome.storage.local.remove(['readLaterLinks', 'completedLinks'], () => {
-      showSaveStatus('All data cleared successfully!');
-      loadStats();
+    await new Promise((resolve) => {
+      chrome.storage.local.set({ 
+        readLaterLinks: allActiveLinks,
+        completedLinks: allCompletedLinks
+      }, resolve);
     });
+
+    const totalImported = newActiveLinks.length + newCompletedLinks.length;
+    showSaveStatus(`Successfully imported ${totalImported} links (${newActiveLinks.length} active, ${newCompletedLinks.length} completed)!`);
+    await loadStats();
+  } catch (error) {
+    console.error('Failed to import links:', error);
+    showSaveStatus('Failed to import links', true);
   }
 }
 
-// Show save status message
+/**
+ * Handle clearing all data with confirmation
+ */
+async function handleClearAllData() {
+  try {
+    const confirmation = prompt(
+      'This will delete ALL your saved links (both active and completed) permanently.\n\n' +
+      'Type "DELETE" to confirm:'
+    );
+    
+    if (confirmation === 'DELETE') {
+      if (!chrome?.storage?.local?.remove) {
+        throw new Error('Chrome storage API not available');
+      }
+
+      await new Promise((resolve) => {
+        chrome.storage.local.remove(['readLaterLinks', 'completedLinks'], resolve);
+      });
+
+      showSaveStatus('All data cleared successfully!');
+      await loadStats();
+    }
+  } catch (error) {
+    console.error('Failed to clear data:', error);
+    showSaveStatus('Failed to clear data', true);
+  }
+}
+
+/**
+ * Show save status message
+ * @param {string} message - Message to display
+ * @param {boolean} isError - Whether this is an error message
+ */
 function showSaveStatus(message, isError = false) {
-  saveStatus.textContent = message;
-  saveStatus.style.color = isError ? '#dc3545' : '#28a745';
+  if (!elements.saveStatus) return;
+
+  elements.saveStatus.textContent = message;
+  elements.saveStatus.style.color = isError ? '#dc3545' : '#28a745';
   
   setTimeout(() => {
-    saveStatus.textContent = '';
+    if (elements.saveStatus) {
+      elements.saveStatus.textContent = '';
+    }
   }, 3000);
 } 

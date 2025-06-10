@@ -1,133 +1,165 @@
-// Popup script for Read Later extension
+/**
+ * @fileoverview Popup script for Read Later extension
+ */
 
+// Application state
+/** @type {ReadLaterLink[]} */
 let allLinks = [];
+/** @type {ReadLaterLink[]} */
 let allCompletedLinks = [];
+/** @type {ReadLaterLink[]} */
 let filteredLinks = [];
-let currentView = 'active'; // 'active' or 'completed'
+/** @type {'active'|'completed'} */
+let currentView = 'active';
 
-// DOM elements
-const linksList = document.getElementById('linksList');
-const linkCount = document.getElementById('linkCount');
-const totalTime = document.getElementById('totalTime');
-const emptyState = document.getElementById('emptyState');
-const addCurrentPageBtn = document.getElementById('addCurrentPage');
-const priorityFilter = document.getElementById('priorityFilter');
-const sortBy = document.getElementById('sortBy');
-const searchInput = document.getElementById('searchInput');
-const activeTab = document.getElementById('activeTab');
-const completedTab = document.getElementById('completedTab');
+// DOM elements - using safe getters
+const elements = {
+  linksList: safeGetElement('linksList'),
+  linkCount: safeGetElement('linkCount'),
+  totalTime: safeGetElement('totalTime'),
+  emptyState: safeGetElement('emptyState'),
+  addCurrentPageBtn: safeGetButtonElement('addCurrentPage'),
+  priorityFilter: safeGetSelectElement('priorityFilter'),
+  sortBy: safeGetSelectElement('sortBy'),
+  searchInput: safeGetInputElement('searchInput'),
+  activeTab: safeGetButtonElement('activeTab'),
+  completedTab: safeGetButtonElement('completedTab'),
+  celebrationContainer: safeGetElement('celebrationContainer')
+};
 
-// Initialize popup
-document.addEventListener('DOMContentLoaded', () => {
-  loadLinks();
+// Initialize popup when DOM is ready
+document.addEventListener('DOMContentLoaded', initializePopup);
+
+/**
+ * Initialize the popup application
+ */
+async function initializePopup() {
+  await loadAllData();
   setupEventListeners();
-});
+  applyFilters();
+}
 
-// Setup event listeners
+/**
+ * Setup all event listeners
+ */
 function setupEventListeners() {
-  addCurrentPageBtn.addEventListener('click', addCurrentPage);
-  priorityFilter.addEventListener('change', applyFilters);
-  sortBy.addEventListener('change', applyFilters);
-  searchInput.addEventListener('input', applyFilters);
-  activeTab.addEventListener('click', () => switchView('active'));
-  completedTab.addEventListener('click', () => switchView('completed'));
+  // Add current page button
+  if (elements.addCurrentPageBtn) {
+    elements.addCurrentPageBtn.addEventListener('click', handleAddCurrentPage);
+  }
+
+  // Filter and sort controls
+  if (elements.priorityFilter) {
+    elements.priorityFilter.addEventListener('change', applyFilters);
+  }
+  if (elements.sortBy) {
+    elements.sortBy.addEventListener('change', applyFilters);
+  }
+
+  // Search input with debouncing
+  if (elements.searchInput) {
+    elements.searchInput.addEventListener('input', debounce(applyFilters, 300));
+  }
+
+  // View tabs
+  if (elements.activeTab) {
+    elements.activeTab.addEventListener('click', () => switchView('active'));
+  }
+  if (elements.completedTab) {
+    elements.completedTab.addEventListener('click', () => switchView('completed'));
+  }
 }
 
-// Load all links from storage
-function loadLinks() {
-  chrome.runtime.sendMessage({ action: 'getLinks' }, (response) => {
-    if (chrome.runtime.lastError) {
-      console.error('Runtime error:', chrome.runtime.lastError);
-      allLinks = [];
-      loadCompletedLinks();
-      return;
-    }
-    
-    if (response && response.success) {
-      allLinks = response.data;
-    } else {
-      console.error('Failed to load links:', response);
-      allLinks = [];
-    }
-    loadCompletedLinks();
-  });
+/**
+ * Load all data from storage
+ */
+async function loadAllData() {
+  try {
+    const [activeResponse, completedResponse] = await Promise.all([
+      sendRuntimeMessage({ action: 'getLinks' }),
+      sendRuntimeMessage({ action: 'getCompletedLinks' })
+    ]);
+
+    allLinks = activeResponse.success ? activeResponse.data || [] : [];
+    allCompletedLinks = completedResponse.success ? completedResponse.data || [] : [];
+  } catch (error) {
+    console.error('Failed to load data:', error);
+    allLinks = [];
+    allCompletedLinks = [];
+  }
 }
 
-// Load completed links from storage
-function loadCompletedLinks() {
-  chrome.runtime.sendMessage({ action: 'getCompletedLinks' }, (response) => {
-    if (chrome.runtime.lastError) {
-      console.error('Runtime error:', chrome.runtime.lastError);
-      allCompletedLinks = [];
-      applyFilters();
-      return;
-    }
-    
-    if (response && response.success) {
-      allCompletedLinks = response.data;
-    } else {
-      console.error('Failed to load completed links:', response);
-      allCompletedLinks = [];
-    }
-    applyFilters();
-  });
-}
-
-// Switch between active and completed views
+/**
+ * Switch between active and completed views
+ * @param {'active'|'completed'} view - View to switch to
+ */
 function switchView(view) {
   currentView = view;
   
   // Update tab states
-  if (view === 'active') {
-    activeTab.classList.add('active');
-    completedTab.classList.remove('active');
-  } else {
-    activeTab.classList.remove('active');
-    completedTab.classList.add('active');
+  if (elements.activeTab && elements.completedTab) {
+    if (view === 'active') {
+      elements.activeTab.classList.add('active');
+      elements.completedTab.classList.remove('active');
+    } else {
+      elements.activeTab.classList.remove('active');
+      elements.completedTab.classList.add('active');
+    }
   }
   
   applyFilters();
 }
 
-// Apply filters and search
+/**
+ * Apply filters, search, and sorting to links
+ */
 function applyFilters() {
-  const priorityValue = priorityFilter.value;
-  const searchValue = searchInput.value.toLowerCase().trim();
-  const sortValue = sortBy.value;
+  const priorityValue = elements.priorityFilter?.value || '';
+  const searchValue = elements.searchInput?.value?.toLowerCase().trim() || '';
+  const sortValue = elements.sortBy?.value || 'dateAdded';
 
   // Get current data set based on view
   const currentData = currentView === 'active' ? allLinks : allCompletedLinks;
 
-  // Filter by priority
-  filteredLinks = priorityValue 
-    ? currentData.filter(link => link.priority === priorityValue)
-    : [...currentData];
+  // Apply filters
+  filteredLinks = currentData.filter(link => {
+    // Priority filter
+    if (priorityValue && link.priority !== priorityValue) {
+      return false;
+    }
 
-  // Filter by search term
-  if (searchValue) {
-    filteredLinks = filteredLinks.filter(link => 
-      link.title.toLowerCase().includes(searchValue) ||
-      link.url.toLowerCase().includes(searchValue) ||
-      link.tags.some(tag => tag.toLowerCase().includes(searchValue))
-    );
-  }
+    // Search filter
+    if (searchValue) {
+      const searchableText = [
+        link.title,
+        link.url,
+        ...(link.tags || [])
+      ].join(' ').toLowerCase();
+      
+      if (!searchableText.includes(searchValue)) {
+        return false;
+      }
+    }
+
+    return true;
+  });
 
   // Sort links
   filteredLinks.sort((a, b) => {
     switch (sortValue) {
       case 'priority':
         const priorityOrder = { high: 3, medium: 2, low: 1 };
-        return priorityOrder[b.priority] - priorityOrder[a.priority];
+        return (priorityOrder[b.priority] || 0) - (priorityOrder[a.priority] || 0);
       
       case 'timeToRead':
-        return a.timeToRead - b.timeToRead;
+        return (a.timeToRead || 0) - (b.timeToRead || 0);
       
       case 'title':
         return a.title.localeCompare(b.title);
       
       case 'dateAdded':
       default:
-        return new Date(b.dateAdded) - new Date(a.dateAdded);
+        return new Date(b.dateAdded).getTime() - new Date(a.dateAdded).getTime();
     }
   });
 
@@ -135,158 +167,108 @@ function applyFilters() {
   updateStats();
 }
 
-// Render links in the popup
+/**
+ * Render links in the popup
+ */
 function renderLinks() {
+  if (!elements.linksList || !elements.emptyState) return;
+
   if (filteredLinks.length === 0) {
     const currentData = currentView === 'active' ? allLinks : allCompletedLinks;
     if (currentData.length === 0) {
-      linksList.style.display = 'none';
-      emptyState.style.display = 'block';
-      const emptyIcon = emptyState.querySelector('.empty-icon');
-      const emptyTitle = emptyState.querySelector('h3');
-      const emptyText = emptyState.querySelector('p');
-      
-      if (currentView === 'active') {
-        emptyIcon.textContent = '📚';
-        emptyTitle.textContent = 'No links saved yet';
-        emptyText.textContent = 'Right-click on any page or link and select "Save to Read Later"';
-      } else {
-        emptyIcon.textContent = '✅';
-        emptyTitle.textContent = 'No completed items';
-        emptyText.textContent = 'Complete some links from your active list to see them here';
-      }
+      // Show empty state
+      elements.linksList.style.display = 'none';
+      elements.emptyState.style.display = 'block';
+      updateEmptyState(elements.emptyState, currentView);
     } else {
-      linksList.innerHTML = '<div class="loading">No links match your filters</div>';
-      emptyState.style.display = 'none';
+      // Show no matches message
+      elements.linksList.style.display = 'block';
+      elements.linksList.innerHTML = '<div class="loading">No links match your filters</div>';
+      elements.emptyState.style.display = 'none';
     }
     return;
   }
 
-  linksList.style.display = 'block';
-  emptyState.style.display = 'none';
+  // Show links
+  elements.linksList.style.display = 'block';
+  elements.emptyState.style.display = 'none';
 
-  linksList.innerHTML = filteredLinks.map(link => createLinkElement(link)).join('');
-
-  // Add event listeners to action buttons
-  document.querySelectorAll('.delete-btn').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      e.preventDefault();
-      deleteLink(btn.dataset.id);
-    });
-  });
-
-  document.querySelectorAll('.complete-btn').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      e.preventDefault();
-      completeLink(btn.dataset.id);
-    });
-  });
-
-  document.querySelectorAll('.uncomplete-btn').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      e.preventDefault();
-      uncompleteLink(btn.dataset.id);
-    });
-  });
-
-  document.querySelectorAll('.link-title').forEach(link => {
-    link.addEventListener('click', (e) => {
-      chrome.tabs.create({ url: link.href });
-      window.close();
-    });
-  });
-}
-
-// Create HTML for a single link
-function createLinkElement(link) {
-  const domain = new URL(link.url).hostname;
-  const dateAdded = new Date(link.dateAdded).toLocaleDateString();
+  // Generate HTML
+  const linksHTML = filteredLinks
+    .map(link => createLinkElementHTML(link, currentView))
+    .join('');
   
-  return `
-    <div class="link-item">
-      <div class="link-header">
-        <a href="${escapeHtml(link.url)}" class="link-title" title="${escapeHtml(link.title)}">
-          ${escapeHtml(link.title)}
-        </a>
-        <div class="link-actions">
-          ${currentView === 'active' ? `
-          <button class="action-btn complete-btn" data-id="${link.id}" title="Mark as Complete">
-            ✅
-          </button>
-          ` : `
-          <button class="action-btn uncomplete-btn" data-id="${link.id}" title="Mark as Incomplete">
-            ↩️
-          </button>
-          `}
-          <button class="action-btn delete-btn" data-id="${link.id}" title="Delete">
-            🗑️
-          </button>
-        </div>
-      </div>
-      
-      <div class="link-meta">
-        <span class="priority priority-${link.priority}">
-          ${link.priority}
-        </span>
-        <span class="time-estimate">
-          ${link.timeToRead} min
-        </span>
-      </div>
-      
-      <div class="link-url">${escapeHtml(domain)}</div>
-      
-      ${link.tags.length > 0 ? `
-        <div class="link-tags">
-          ${link.tags.map(tag => `<span class="tag">${escapeHtml(tag)}</span>`).join('')}
-        </div>
-      ` : ''}
-    </div>
-  `;
+  elements.linksList.innerHTML = linksHTML;
+
+  // Attach event listeners
+  attachLinkEventListeners({
+    onDelete: handleDeleteLink,
+    onComplete: handleCompleteLink,
+    onUncomplete: handleUncompleteLink,
+    onLinkClick: handleLinkClick
+  });
 }
 
-// Update stats in header
+/**
+ * Update statistics display
+ */
 function updateStats() {
-  const count = filteredLinks.length;
-  const total = filteredLinks.reduce((sum, link) => sum + link.timeToRead, 0);
-  
-  linkCount.textContent = count === 1 ? '1 item' : `${count} items`;
-  totalTime.textContent = total === 1 ? '1 min total' : `${total} min total`;
+  if (!elements.linkCount || !elements.totalTime) return;
+
+  updateStatsDisplay(filteredLinks, elements.linkCount, elements.totalTime);
 }
 
-// Add current page to read later
-function addCurrentPage() {
-  chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+/**
+ * Handle adding current page to read later
+ */
+async function handleAddCurrentPage() {
+  try {
+    if (!chrome?.tabs?.query || !chrome?.tabs?.sendMessage) {
+      throw new Error('Chrome tabs API not available');
+    }
+
+    const tabs = await new Promise((resolve) => {
+      chrome.tabs.query({ active: true, currentWindow: true }, resolve);
+    });
+
     const tab = tabs[0];
+    if (!tab) {
+      throw new Error('No active tab found');
+    }
     
     // Send message to content script to show save dialog
     chrome.tabs.sendMessage(tab.id, {
       action: 'showSaveDialog',
       url: tab.url,
       title: tab.title
-    }, (response) => {
-      // Close popup after sending message
-      window.close();
     });
-  });
+    
+    // Close popup after sending message
+    window.close();
+  } catch (error) {
+    console.error('Failed to add current page:', error);
+    if (elements.linksList) {
+      showError(elements.linksList, 'Failed to add current page');
+    }
+  }
 }
 
-// Delete a link
-function deleteLink(linkId) {
+/**
+ * Handle deleting a link
+ * @param {string} linkId - ID of link to delete
+ */
+async function handleDeleteLink(linkId) {
   if (!confirm('Are you sure you want to delete this link?')) {
     return;
   }
 
-  chrome.runtime.sendMessage({ 
-    action: 'deleteLink', 
-    id: linkId 
-  }, (response) => {
-    if (chrome.runtime.lastError) {
-      console.error('Runtime error:', chrome.runtime.lastError);
-      showError('Failed to delete link');
-      return;
-    }
+  try {
+    const response = await sendRuntimeMessage({ 
+      action: 'deleteLink', 
+      id: linkId 
+    });
     
-    if (response && response.success) {
+    if (response.success) {
       // Remove from local arrays
       if (currentView === 'active') {
         allLinks = allLinks.filter(link => link.id !== linkId);
@@ -295,26 +277,30 @@ function deleteLink(linkId) {
       }
       applyFilters();
     } else {
-      showError('Failed to delete link');
+      throw new Error(response.error || 'Failed to delete link');
     }
-  });
+  } catch (error) {
+    console.error('Failed to delete link:', error);
+    if (elements.linksList) {
+      showError(elements.linksList, 'Failed to delete link');
+    }
+  }
 }
 
-// Complete a link
-function completeLink(linkId) {
-  chrome.runtime.sendMessage({ 
-    action: 'completeLink', 
-    id: linkId 
-  }, (response) => {
-    if (chrome.runtime.lastError) {
-      console.error('Runtime error:', chrome.runtime.lastError);
-      showError('Failed to complete link');
-      return;
-    }
+/**
+ * Handle completing a link
+ * @param {string} linkId - ID of link to complete
+ */
+async function handleCompleteLink(linkId) {
+  try {
+    const response = await sendRuntimeMessage({ 
+      action: 'completeLink', 
+      id: linkId 
+    });
     
-    if (response && response.success) {
+    if (response.success) {
       // Trigger celebration animation
-      triggerCelebration();
+      await triggerCelebration();
       
       // Move link from active to completed
       const linkIndex = allLinks.findIndex(link => link.id === linkId);
@@ -328,24 +314,28 @@ function completeLink(linkId) {
         applyFilters();
       }
     } else {
-      showError('Failed to complete link');
+      throw new Error(response.error || 'Failed to complete link');
     }
-  });
+  } catch (error) {
+    console.error('Failed to complete link:', error);
+    if (elements.linksList) {
+      showError(elements.linksList, 'Failed to complete link');
+    }
+  }
 }
 
-// Uncomplete a link
-function uncompleteLink(linkId) {
-  chrome.runtime.sendMessage({ 
-    action: 'uncompleteLink', 
-    id: linkId 
-  }, (response) => {
-    if (chrome.runtime.lastError) {
-      console.error('Runtime error:', chrome.runtime.lastError);
-      showError('Failed to uncomplete link');
-      return;
-    }
+/**
+ * Handle uncompleting a link
+ * @param {string} linkId - ID of link to uncomplete
+ */
+async function handleUncompleteLink(linkId) {
+  try {
+    const response = await sendRuntimeMessage({ 
+      action: 'uncompleteLink', 
+      id: linkId 
+    });
     
-    if (response && response.success) {
+    if (response.success) {
       // Move link from completed to active
       const linkIndex = allCompletedLinks.findIndex(link => link.id === linkId);
       if (linkIndex !== -1) {
@@ -356,26 +346,33 @@ function uncompleteLink(linkId) {
         applyFilters();
       }
     } else {
-      showError('Failed to uncomplete link');
+      throw new Error(response.error || 'Failed to uncomplete link');
     }
-  });
+  } catch (error) {
+    console.error('Failed to uncomplete link:', error);
+    if (elements.linksList) {
+      showError(elements.linksList, 'Failed to uncomplete link');
+    }
+  }
 }
 
-// Show error message
-function showError(message) {
-  linksList.innerHTML = `<div class="loading" style="color: #dc3545;">${message}</div>`;
+/**
+ * Handle clicking on a link
+ * @param {string} url - URL to open
+ */
+function handleLinkClick(url) {
+  if (chrome?.tabs?.create) {
+    chrome.tabs.create({ url });
+    window.close();
+  }
 }
 
-// Escape HTML to prevent XSS
-function escapeHtml(text) {
-  const div = document.createElement('div');
-  div.textContent = text;
-  return div.innerHTML;
-}
-
-// Trigger celebration animation
+/**
+ * Trigger celebration animation when a link is completed
+ */
 async function triggerCelebration() {
-  const celebrationContainer = document.getElementById('celebrationContainer');
+  if (!elements.celebrationContainer) return;
+
   const emojis = ['🎉', '✨', '🌟', '🎈'];
   const animations = ['celebrateFromBottomLeft', 'celebrateFromBottomRight'];
   
@@ -402,7 +399,7 @@ async function triggerCelebration() {
     emoji.style.animationDelay = delay + 's';
     emoji.style.animationDuration = duration + 's';
     
-    celebrationContainer.appendChild(emoji);
+    elements.celebrationContainer.appendChild(emoji);
     
     // Clean up after animation with smooth removal
     cleanupEmoji(emoji, parseFloat(duration) * 1000 + 500);
@@ -412,7 +409,11 @@ async function triggerCelebration() {
   }
 }
 
-// Set emoji position based on animation type
+/**
+ * Set emoji position based on animation type
+ * @param {HTMLElement} emoji - Emoji element
+ * @param {string} animationType - Animation type
+ */
 function setEmojiPosition(emoji, animationType) {
   // Add random spread to starting positions (±25px variation)
   const randomSpread = () => (Math.random() - 0.5) * 50;
@@ -443,7 +444,11 @@ function setEmojiPosition(emoji, animationType) {
   emoji.style.setProperty('--random-y', randomEndSpread() + 'px');
 }
 
-// Smooth delay using requestAnimationFrame
+/**
+ * Smooth delay using requestAnimationFrame
+ * @param {number} ms - Milliseconds to wait
+ * @returns {Promise<void>} Promise that resolves after delay
+ */
 function smoothDelay(ms) {
   return new Promise(resolve => {
     const start = performance.now();
@@ -458,7 +463,11 @@ function smoothDelay(ms) {
   });
 }
 
-// Clean up emoji with smooth timing
+/**
+ * Clean up emoji with smooth timing
+ * @param {HTMLElement} emoji - Emoji element
+ * @param {number} delay - Delay before cleanup
+ */
 function cleanupEmoji(emoji, delay) {
   setTimeout(() => {
     if (emoji.parentNode) {
