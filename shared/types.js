@@ -19,6 +19,7 @@
  * @property {'high'|'medium'|'low'} defaultPriority - Default priority for new links
  * @property {number} defaultTime - Default time estimate in minutes
  * @property {boolean} showNotifications - Whether to show notifications
+ * @property {'system'|'light'|'dark'} themeMode - Theme preference
  */
 
 /**

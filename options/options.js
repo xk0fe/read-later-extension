@@ -9,13 +9,13 @@ const optionsElements = {
   defaultPriority: safeGetSelectElement('defaultPriority'),
   defaultTime: safeGetInputElement('defaultTime'),
   showNotifications: safeGetInputElement('showNotifications'),
+  themeMode: safeGetSelectElement('themeMode'),
   totalLinks: safeGetElement('totalLinks'),
   totalTimeDisplay: safeGetElement('totalTimeDisplay'),
   exportData: safeGetButtonElement('exportData'),
   importData: safeGetButtonElement('importData'),
   importFile: safeGetInputElement('importFile'),
   clearAllData: safeGetButtonElement('clearAllData'),
-  saveSettings: safeGetButtonElement('saveSettings'),
   saveStatus: safeGetElement('saveStatus')
 };
 
@@ -28,18 +28,19 @@ document.addEventListener('DOMContentLoaded', initializeOptions);
 async function initializeOptions() {
   await Promise.all([
     loadSettings(),
-    loadStats()
-  ]);
+    loadStats(),
+    globalThis.loadTheme?.()
+  ].filter(Boolean));
   setupEventListeners();
+  if (optionsElements.themeMode && globalThis.setupThemeListener) {
+    globalThis.setupThemeListener(optionsElements.themeMode);
+  }
 }
 
 /**
  * Setup all event listeners
  */
 function setupEventListeners() {
-  if (optionsElements.saveSettings) {
-    optionsElements.saveSettings.addEventListener('click', handleSaveSettings);
-  }
   if (optionsElements.exportData) {
     optionsElements.exportData.addEventListener('click', handleExportData);
   }
@@ -52,6 +53,9 @@ function setupEventListeners() {
   if (optionsElements.clearAllData) {
     optionsElements.clearAllData.addEventListener('click', handleClearAllData);
   }
+  
+  // Setup auto-save for form fields
+  setupAutoSave();
 }
 
 /**
@@ -79,6 +83,9 @@ async function loadSettings() {
     }
     if (optionsElements.showNotifications) {
       optionsElements.showNotifications.checked = settings.showNotifications !== false;
+    }
+    if (optionsElements.themeMode && settings.themeMode) {
+      optionsElements.themeMode.value = settings.themeMode;
     }
   } catch (error) {
     console.error('Failed to load settings:', error);
@@ -124,9 +131,9 @@ async function loadStats() {
 }
 
 /**
- * Handle saving settings to storage
+ * Auto-save settings to storage
  */
-async function handleSaveSettings() {
+async function autoSaveSettings() {
   try {
     if (!globalThis.chrome?.storage?.sync?.set) {
       throw new Error('Chrome storage API not available');
@@ -135,14 +142,18 @@ async function handleSaveSettings() {
     const settings = {
       defaultPriority: optionsElements.defaultPriority?.value || 'medium',
       defaultTime: parseInt(optionsElements.defaultTime?.value || '5'),
-      showNotifications: optionsElements.showNotifications?.checked !== false
+      showNotifications: optionsElements.showNotifications?.checked !== false,
+      themeMode: optionsElements.themeMode?.value || 'system'
     };
+    
+    // Cache theme in localStorage for immediate access
+    localStorage.setItem('readLaterTheme', settings.themeMode);
     
     await new Promise((resolve) => {
       globalThis.chrome.storage.sync.set({ readLaterSettings: settings }, resolve);
     });
 
-    showSaveStatus('Settings saved successfully!');
+    showSaveStatus('Settings saved automatically');
   } catch (error) {
     console.error('Failed to save settings:', error);
     showSaveStatus('Failed to save settings', true);
@@ -253,6 +264,8 @@ function handleImportData(event) {
   reader.readAsText(file);
 }
 
+
+
 /**
  * Clean and prepare a link for import
  * @param {*} link - Link to clean
@@ -347,11 +360,47 @@ function showSaveStatus(message, isError = false) {
   if (!optionsElements.saveStatus) return;
 
   optionsElements.saveStatus.textContent = message;
-  optionsElements.saveStatus.style.color = isError ? '#dc3545' : '#28a745';
+  optionsElements.saveStatus.style.color = isError ? 'var(--danger-color)' : 'var(--success-color)';
+  optionsElements.saveStatus.style.opacity = '1';
+  
+  // For auto-save messages, fade out faster
+  const timeout = message.includes('automatically') ? 2000 : 3000;
   
   setTimeout(() => {
     if (optionsElements.saveStatus) {
-      optionsElements.saveStatus.textContent = '';
+      optionsElements.saveStatus.style.opacity = '0';
+      setTimeout(() => {
+        if (optionsElements.saveStatus) {
+          optionsElements.saveStatus.textContent = '';
+        }
+      }, 300);
     }
-  }, 3000);
+  }, timeout);
+}
+
+/**
+ * Setup auto-save for form fields
+ */
+function setupAutoSave() {
+  // Add change listeners to all form fields
+  const formFields = [
+    optionsElements.defaultPriority,
+    optionsElements.defaultTime,
+    optionsElements.showNotifications,
+    optionsElements.themeMode
+  ];
+
+  // Debounced auto-save function to avoid excessive saves
+  const debouncedAutoSave = debounce(autoSaveSettings, 500);
+
+  formFields.forEach(field => {
+    if (field) {
+      // For immediate changes (select, checkbox)
+      field.addEventListener('change', autoSaveSettings);
+      // For text/number inputs, use debounced save while typing
+      if (field.type === 'text' || field.type === 'number') {
+        field.addEventListener('input', debouncedAutoSave);
+      }
+    }
+  });
 } 

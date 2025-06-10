@@ -18,8 +18,9 @@
   --rl-transition-bounce: 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
 }
 
+/* Dark theme - auto via system preference */
 @media (prefers-color-scheme: dark) {
-  #readLaterOverlay {
+  html:not([data-theme="light"]) #readLaterOverlay {
     --rl-bg-primary: #1c1c1e;
     --rl-bg-overlay: rgba(0, 0, 0, 0.6);
     --rl-text-primary: #ffffff;
@@ -30,6 +31,32 @@
     --rl-success-color: #30d158;
     --rl-shadow: 0 24px 60px rgba(0, 0, 0, 0.4), 0 8px 32px rgba(0, 0, 0, 0.3);
   }
+}
+
+/* Manual dark theme override */
+[data-theme="dark"] #readLaterOverlay {
+  --rl-bg-primary: #1c1c1e;
+  --rl-bg-overlay: rgba(0, 0, 0, 0.6);
+  --rl-text-primary: #ffffff;
+  --rl-text-secondary: #98989d;
+  --rl-border-color: #38383a;
+  --rl-accent-primary: #0a84ff;
+  --rl-accent-hover: #409cff;
+  --rl-success-color: #30d158;
+  --rl-shadow: 0 24px 60px rgba(0, 0, 0, 0.4), 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+/* Manual light theme override */
+[data-theme="light"] #readLaterOverlay {
+  --rl-bg-primary: #ffffff;
+  --rl-bg-overlay: rgba(0, 0, 0, 0.4);
+  --rl-text-primary: #1d1d1f;
+  --rl-text-secondary: #86868b;
+  --rl-border-color: #d2d2d7;
+  --rl-accent-primary: #007aff;
+  --rl-accent-hover: #0056b3;
+  --rl-success-color: #30d158;
+  --rl-shadow: 0 24px 60px rgba(0, 0, 0, 0.25), 0 8px 32px rgba(0, 0, 0, 0.15);
 }
 
 /* Overlay container */

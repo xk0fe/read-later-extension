@@ -28,8 +28,9 @@
     --transition-bounce: 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
 }
 
+/* Dark theme - auto via system preference */
 @media (prefers-color-scheme: dark) {
-    :root {
+    :root:not([data-theme="light"]) {
         /* Dark theme colors - modern palette */
         --bg-primary: #1c1c1e;
         --bg-secondary: #000000;
@@ -52,6 +53,56 @@
         --danger-color: #ff453a;
         --warning-color: #ff9f0a;
     }
+}
+
+/* Manual dark theme override */
+[data-theme="dark"] {
+    /* Dark theme colors - modern palette */
+    --bg-primary: #1c1c1e;
+    --bg-secondary: #000000;
+    --bg-tertiary: #2c2c2e;
+    --bg-card: #1c1c1e;
+    --text-primary: #ffffff;
+    --text-secondary: #98989d;
+    --text-muted: #636366;
+    --border-color: #38383a;
+    --border-hover: #0a84ff;
+    --accent-primary: #0a84ff;
+    --accent-hover: #409cff;
+    --accent-light: rgba(10, 132, 255, 0.1);
+    --gradient-start: #0A84FF;
+    --gradient-end: #BF5AF2;
+    --shadow-light: 0 2px 12px rgba(0, 0, 0, 0.3);
+    --shadow-medium: 0 4px 24px rgba(0, 0, 0, 0.4);
+    --shadow-heavy: 0 8px 32px rgba(0, 0, 0, 0.5);
+    --success-color: #30d158;
+    --danger-color: #ff453a;
+    --warning-color: #ff9f0a;
+}
+
+/* Manual light theme override */
+[data-theme="light"] {
+    /* Light theme colors - modern palette */
+    --bg-primary: #ffffff;
+    --bg-secondary: #f5f5f7;
+    --bg-tertiary: #f0f0f5;
+    --bg-card: #ffffff;
+    --text-primary: #1d1d1f;
+    --text-secondary: #86868b;
+    --text-muted: #a1a1a6;
+    --border-color: #d2d2d7;
+    --border-hover: #007aff;
+    --accent-primary: #007aff;
+    --accent-hover: #0056b3;
+    --accent-light: rgba(0, 122, 255, 0.1);
+    --gradient-start: #007AFF;
+    --gradient-end: #FF2D92;
+    --shadow-light: 0 2px 12px rgba(0, 0, 0, 0.08);
+    --shadow-medium: 0 4px 24px rgba(0, 0, 0, 0.12);
+    --shadow-heavy: 0 8px 32px rgba(0, 0, 0, 0.16);
+    --success-color: #30d158;
+    --danger-color: #ff3b30;
+    --warning-color: #ff9500;
 }
 
 * {
@@ -439,7 +490,7 @@ footer {
     padding: 32px;
     border-top: 1px solid var(--border-color);
     display: flex;
-    justify-content: space-between;
+    justify-content: center;
     align-items: center;
     backdrop-filter: blur(10px);
 }
@@ -449,7 +500,11 @@ footer {
     font-weight: 600;
     padding: 8px 16px;
     border-radius: var(--radius-small);
-    transition: var(--transition-standard);
+    transition: opacity 0.3s ease, color 0.2s ease;
+    opacity: 0;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    box-shadow: var(--shadow-light);
 }
 
 /* Responsive design */

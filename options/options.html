@@ -4,6 +4,38 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Read Later - Options</title>
+    
+    <!-- Immediate theme loading to prevent flash -->
+    <script>
+    (function() {
+        // Try to get theme from localStorage first (immediate)
+        const cachedTheme = localStorage.getItem('readLaterTheme');
+        if (cachedTheme && cachedTheme !== 'system') {
+            document.documentElement.setAttribute('data-theme', cachedTheme);
+        }
+        
+        // Then load from Chrome storage and update
+        if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.sync) {
+            chrome.storage.sync.get(['readLaterSettings'], function(result) {
+                const settings = result.readLaterSettings || {};
+                const themeMode = settings.themeMode || 'system';
+                
+                // Cache in localStorage for immediate future access
+                localStorage.setItem('readLaterTheme', themeMode);
+                
+                // Apply theme to html element
+                if (themeMode === 'light') {
+                    document.documentElement.setAttribute('data-theme', 'light');
+                } else if (themeMode === 'dark') {
+                    document.documentElement.setAttribute('data-theme', 'dark');
+                } else {
+                    document.documentElement.removeAttribute('data-theme');
+                }
+            });
+        }
+    })();
+    </script>
+    
     <link rel="stylesheet" href="options.css">
 </head>
 <body>
@@ -35,6 +67,15 @@
                         <input type="checkbox" id="showNotifications" checked>
                         Show notifications when saving links
                     </label>
+                </div>
+                
+                <div class="setting-group">
+                    <label for="themeMode">Theme:</label>
+                    <select id="themeMode">
+                        <option value="system">🌓 Follow System</option>
+                        <option value="light">☀️ Light</option>
+                        <option value="dark">🌙 Dark</option>
+                    </select>
                 </div>
             </section>
 
@@ -91,7 +132,6 @@
         </main>
 
         <footer>
-            <button id="saveSettings" class="btn btn-primary">Save Settings</button>
             <div class="save-status" id="saveStatus"></div>
         </footer>
     </div>
@@ -100,6 +140,7 @@
     <script src="../shared/types.js"></script>
     <script src="../shared/utils.js"></script>
     <script src="../shared/dom-helpers.js"></script>
+    <script src="../shared/theme.js"></script>
     <script src="options.js"></script>
 </body>
 </html> 

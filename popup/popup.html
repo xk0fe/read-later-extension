@@ -4,6 +4,38 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Read Later</title>
+    
+    <!-- Immediate theme loading to prevent flash -->
+    <script>
+    (function() {
+        // Try to get theme from localStorage first (immediate)
+        const cachedTheme = localStorage.getItem('readLaterTheme');
+        if (cachedTheme && cachedTheme !== 'system') {
+            document.documentElement.setAttribute('data-theme', cachedTheme);
+        }
+        
+        // Then load from Chrome storage and update
+        if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.sync) {
+            chrome.storage.sync.get(['readLaterSettings'], function(result) {
+                const settings = result.readLaterSettings || {};
+                const themeMode = settings.themeMode || 'system';
+                
+                // Cache in localStorage for immediate future access
+                localStorage.setItem('readLaterTheme', themeMode);
+                
+                // Apply theme to html element
+                if (themeMode === 'light') {
+                    document.documentElement.setAttribute('data-theme', 'light');
+                } else if (themeMode === 'dark') {
+                    document.documentElement.setAttribute('data-theme', 'dark');
+                } else {
+                    document.documentElement.removeAttribute('data-theme');
+                }
+            });
+        }
+    })();
+    </script>
+    
     <link rel="stylesheet" href="popup.css">
 </head>
 <body>
@@ -83,6 +115,7 @@
     <script src="../shared/types.js"></script>
     <script src="../shared/utils.js"></script>
     <script src="../shared/dom-helpers.js"></script>
+    <script src="../shared/theme.js"></script>
     <script src="popup.js"></script>
 </body>
 </html> 

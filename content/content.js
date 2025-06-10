@@ -1,5 +1,16 @@
 // Content script for Read Later extension
 
+// Load theme utility
+async function loadThemeUtility() {
+  return new Promise((resolve) => {
+    const script = document.createElement('script');
+    script.src = globalThis.chrome?.runtime?.getURL('shared/theme.js');
+    script.onload = resolve;
+    script.onerror = resolve; // Continue even if theme fails to load
+    document.head.appendChild(script);
+  });
+}
+
 // Inject modern styles from CSS file
 function injectModernStyles() {
   if (document.getElementById('readLaterModernStyles')) return;
@@ -14,10 +25,25 @@ function injectModernStyles() {
 
 // Listen for messages from background script
 if (globalThis.chrome?.runtime?.onMessage) {
-  globalThis.chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  globalThis.chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
     if (request.action === "showSaveDialog") {
-      injectModernStyles();
-      showSaveDialog(request.url, request.title);
+      try {
+        await loadThemeUtility();
+        injectModernStyles();
+        // Load theme after utilities are available with fallback
+        if (globalThis.loadTheme) {
+          try {
+            await globalThis.loadTheme();
+          } catch (themeError) {
+            console.log('Theme loading failed, continuing with default styles:', themeError);
+          }
+        }
+        showSaveDialog(request.url, request.title);
+      } catch (error) {
+        console.error('Content script error:', error);
+        // Show dialog anyway, even if theme loading fails
+        showSaveDialog(request.url, request.title);
+      }
     }
   });
 }
@@ -120,11 +146,11 @@ function showSaveDialog(url, title) {
   
   if (confirmButton) {
     confirmButton.onclick = () => {
-      const titleElement = document.getElementById('linkTitle') as HTMLInputElement;
-      const urlElement = document.getElementById('linkUrl') as HTMLInputElement;
-      const priorityElement = document.getElementById('linkPriority') as HTMLSelectElement;
-      const timeElement = document.getElementById('timeToRead') as HTMLInputElement;
-      const tagsElement = document.getElementById('linkTags') as HTMLInputElement;
+      const titleElement = document.getElementById('linkTitle');
+      const urlElement = document.getElementById('linkUrl');
+      const priorityElement = document.getElementById('linkPriority');
+      const timeElement = document.getElementById('timeToRead');
+      const tagsElement = document.getElementById('linkTags');
       
       if (!titleElement || !urlElement || !priorityElement || !timeElement || !tagsElement) {
         alert('Dialog elements not found');
@@ -178,7 +204,7 @@ function showSaveDialog(url, title) {
   
   // Focus title input with null safety
   setTimeout(() => {
-    const titleInput = document.getElementById('linkTitle') as HTMLInputElement;
+    const titleInput = document.getElementById('linkTitle');
     if (titleInput) {
       titleInput.select();
     }

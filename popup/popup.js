@@ -36,7 +36,10 @@ document.addEventListener('DOMContentLoaded', initializePopup);
  * Initialize the popup application
  */
 async function initializePopup() {
-  await loadAllData();
+  await Promise.all([
+    loadAllData(),
+    globalThis.loadTheme?.()
+  ].filter(Boolean));
   setupEventListeners();
   applyFilters();
 }
