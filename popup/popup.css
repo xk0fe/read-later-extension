@@ -78,10 +78,24 @@ body {
 
 /* Header */
 .header {
-    background: linear-gradient(135deg, var(--gradient-start) 0%, var(--gradient-end) 100%);
+    background: linear-gradient(-45deg, var(--gradient-start), var(--gradient-end), var(--gradient-start), var(--gradient-end));
+    background-size: 400% 400%;
+    animation: gradientShift 8s ease-in-out infinite;
     color: white;
     padding: 16px;
     text-align: center;
+}
+
+@keyframes gradientShift {
+    0% {
+        background-position: 0% 50%;
+    }
+    50% {
+        background-position: 100% 50%;
+    }
+    100% {
+        background-position: 0% 50%;
+    }
 }
 
 .title {
